@@ -1,22 +1,107 @@
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <title>Landing page</title>
 </head>
+
 <body>
-<nav id="publicNav">
+    <nav id="publicNav">
         <div class="container">
-            <a href="#" class="logo" onclick="showPage('landingPage')">Vervly</a>
+            <a href="#" class="logo" onclick="showPage('landingPage')"><img src="./assets/logo.png" alt="" /></a>
             <nav>
                 <a href="#" onclick="showPage('landingPage', 'featuresSection')">Funkcje</a>
                 <a href="#" onclick="showPage('landingPage', 'languagesSection')">Języki</a>
-                <a href="#" class="button-login" onclick="showPage('loginPage')">Zaloguj się</a>
-                <a href="#" class="button-register" onclick="showPage('registerPage')">Zarejestruj się</a>
+                <a href="#" onclick="showPage('loginPage')"><button class="btn-login">Zaloguj się</button></a>
+                <a href="#" onclick="showPage('registerPage')"><button class="btn-register">Zarejestruj się</button></a>
             </nav>
         </div>
     </nav>
+    <main id="mainContent">
+        <div id="landingPage" class="page">
+            <section class="hero-section">
+                <!-- Decorative Shapes -->
+                <div class="decorative-shapes">
+                    <div class="shape shape-1"></div>
+                    <div class="shape shape-2"></div>
+                    <div class="shape shape-3"></div>
+                </div>
+
+                <div class="hero-container">
+                    <!-- Hero Content -->
+                    <div class="hero-content">
+                        <div class="hero-badge">✨ Nowa era w edukacji online</div>
+
+                        <img class="hero-img" src="./assets/hero.png" alt="" />
+                        <!-- Stats Section -->
+
+                        <div class="hero-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">15k+</span>
+                                <span class="stat-label">Aktywnych Uczniów</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">98%</span>
+                                <span class="stat-label">Zadowolonych</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">750+</span>
+                                <span class="stat-label">Kursów</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- CTA Section -->
+                    <div class="cta-section">
+                        <div class="cta-buttons">
+                            <a href="#" class="cta-primary" onclick="showPage('registerPage')">
+                                🚀 Rozpocznij Za Darmo
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="features-title">
+                        <h2>Dlaczego warto wybrać Vervly?</h2>
+                    </div>
+
+                    <!-- Features Preview -->
+                    <div class="features-preview">
+                        <div class="feature-card">
+                            <div class="feature-icon">⚙️</div>
+                            <h3 class="feature-title">Różne Tryby Nauki</h3>
+                            <p class="feature-description">
+                                Od fiszek po testy czasowe – wybierz metodę, która najbardziej
+                                Ci odpowiada.
+                            </p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <h3 class="feature-title">Śledzenie Postępów</h3>
+                            <p class="feature-description">
+                                Monitoruj swoje wyniki, analizuj statystyki i obserwuj, jak
+                                stajesz się coraz lepszy.
+                            </p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🎥</div>
+                            <h3 class="feature-title">Personalizowane Powtórki</h3>
+                            <p class="feature-description">
+                                Nasz inteligentny system pomoże Ci utrwalić najtrudniejsze
+                                słówka.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <button id="backToTop" class="back-to-top" aria-label="Powrót na górę strony">
+        <i class="bx bx-up-arrow-alt" style="color: #ffffff"></i>
+    </button>
+    <script src="/frontend/src/navbar.js"></script>
 </body>
 </html>
