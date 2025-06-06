@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <title>Login Page</title>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="decorative-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        <div class="auth-page-container">
+            <div class="auth-form-wrapper">
+                <h2>Zaloguj się do Vervly</h2>
+                <form>
+                    <input id="login-email" type="email" required placeholder="Adres email">
+                    <input id="login-password" type="password" required placeholder="Hasło">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label class="checkbox-label"><input id="remember-me" type="checkbox"><span>Zapamiętaj
+                                mnie</span></label>
+                        <a class="reset-password" href="#" style="font-size: 0.875rem;">Zapomniałeś
+                            hasła?</a>
+                    </div>
+                    <button type="submit" class="form-button">Zaloguj się</button>
+                </form>
+                <p class="form-link">Nie masz konta? <a href="#">Zarejestruj się</a>
+                </p>
+            </div>
+        </div>
+</body>
+
+</html>
