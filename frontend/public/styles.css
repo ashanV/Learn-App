@@ -1130,6 +1130,11 @@ html.dark .auth-form-wrapper input[type="checkbox"] {
   transition: all 0.3s ease;
 }
 
+.statute-container a {
+  color: var(--vervly-primary-dark);
+  font-weight: 600;
+}
+
 html.dark .auth-form-wrapper .form-link a {
   color: var(--vervly-primary-light);
 }

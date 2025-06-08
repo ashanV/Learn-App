@@ -1,13 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="styles.css" />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    <title>Register Page</title>>
+    <title>Register Page</title>
 </head>
+
 <body>
-    
+    <div id="registerPage" class="auth-container">
+        <div class="decorative-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        <div class="auth-page-container">
+            <div class="auth-form-wrapper">
+                <h2>Utwórz nowe konto w Vervly</h2>
+                <form>
+                    <input id="register-email" type="email" required placeholder="Adres email">
+                    <input id="register-password" type="password" required placeholder="Hasło">
+                    <input id="register-password-confirm" type="password" required placeholder="Powtórz hasło">
+                    <label class="checkbox-label">
+                        <input id="terms" type="checkbox" required>
+                        <span class="statute-container">Akceptuję <a href="#">regulamin</a> i <a href="#">politykę prywatności</a>.</span>
+                    </label>
+                    <button type="submit" class="form-button">Zarejestruj się</button>
+                </form>
+                <p class="form-link">Masz już konto? <a href="./login.html">Zaloguj się</a></p>
+            </div>
+        </div>
+    </div>
 </body>
+<script type="module" src="/backend/auth/register.js"></script>
 </html>
