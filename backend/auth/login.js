@@ -57,10 +57,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (response.ok) {
           showMessage("Logowanie pomyślne!", "success");
-
-          // Redirect to the main application page
           setTimeout(() => {
-            window.location.href = "/frontend/public/dashboard.html"; // or another home page
+            window.location.href = "/frontend/public/dashboard.html";
           }, 1500);
         } else {
           let errorMessage = "Błąd podczas aktualizacji danych użytkownika";
@@ -71,7 +69,6 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("Błąd parsowania JSON:", jsonError);
           }
           console.error("Błąd aktualizacji użytkownika:", errorMessage);
-          // Despite the error in MongoDB, the user is logged in to Firebase
           showMessage("Logowanie pomyślne!", "success");
           setTimeout(() => {
             window.location.href = ".";
@@ -103,6 +100,14 @@ document.addEventListener("DOMContentLoaded", function () {
         submitButton.textContent = "Zaloguj się";
       }
     });
+
+    // Dodanie obsługi przycisku pokazywania hasła
+    const togglePasswordButton = document.querySelector(".password-toggle");
+    if (togglePasswordButton) {
+      togglePasswordButton.addEventListener("click", function () {
+        togglePassword("login-password", this);
+      });
+    }
   }
 });
 
@@ -142,4 +147,17 @@ function showMessage(message, type) {
   setTimeout(() => {
     messageDiv.remove();
   }, 7000);
+}
+
+function togglePassword(inputId, button) {
+  const input = document.getElementById("login-password");
+  const icon = button.querySelector("i");
+
+  if (input.type === "password") {
+    input.type = "text";
+    icon.className = "bx bx-show";
+  } else {
+    input.type = "password";
+    icon.className = "bx bx-hide";
+  }
 }

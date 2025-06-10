@@ -21,7 +21,12 @@
                 <h2>Utwórz nowe konto w Vervly</h2>
                 <form>
                     <input id="register-email" type="email" required placeholder="Adres email">
-                    <input id="register-password" type="password" required placeholder="Hasło">
+                     <div class="password-container">
+                        <input id="register-password" type="password" required placeholder="Hasło">
+                        <button type="button" class="password-toggle">
+                            <i class="bx bx-hide"></i>
+                        </button>
+                    </div>
                     <input id="register-password-confirm" type="password" required placeholder="Powtórz hasło">
                     <label class="checkbox-label">
                         <input id="terms" type="checkbox" required>

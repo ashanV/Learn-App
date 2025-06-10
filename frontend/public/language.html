@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="styles.css" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <title>Choose a language to learn - Vervly</title>
+</head>
+
+<body>
+    <div id="choose-language" class="language-container">
+        <div class="decorative-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        <div class="language-selection-container">
+            <h1 class="language-title">Wybierz język do nauki</h1>
+            <p class="language-subtitle">Który język chcesz zacząć uczyć się z Vervly?</p>
+
+            <div class="langueage-preview">
+                <div class="langueage-card" data-language="english">
+                    <div class="langueage-icon">
+                        <img src="./assets/icon/ang.svg" alt="Angielski"
+                            onerror="this.style.display='none'; this.parentElement.innerHTML='🇺🇸';">
+                    </div>
+                    <h3 class="feature-title">Angielski</h3>
+                </div>
+                <div class="langueage-card" data-language="german">
+                    <div class="langueage-icon">
+                        <img src="./assets/icon/ger.svg" alt="Niemiecki"
+                            onerror="this.style.display='none'; this.parentElement.innerHTML='🇩🇪';">
+                    </div>
+                    <h3 class="feature-title">Niemiecki</h3>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button class="continue-button" id="continueBtn">Kontynuuj</button>
+                <button class="skip-button" id="skipBtn">Pomiń na razie</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="module" src="/frontend/src/components/choose-language.js"></script>
+</html>

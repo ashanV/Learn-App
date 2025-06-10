@@ -94,8 +94,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (response.ok) {
           showMessage("Rejestracja zakończona pomyślnie!", "success");
+          
+          // Save firebase Uid in local storage as per language page
+          localStorage.setItem("tempFirebaseUid", firebaseUser.uid);
+          
           setTimeout(() => {
-            window.location.href = "./login.html";
+            window.location.href = "./language.html";
           }, 2000);
         } else {
           let errorMessage = "Błąd podczas zapisywania użytkownika";
@@ -139,6 +143,13 @@ document.addEventListener("DOMContentLoaded", function () {
         submitButton.textContent = "Zarejestruj się";
       }
     });
+    
+    const togglePasswordButton = document.querySelector(".password-toggle");
+    if (togglePasswordButton) {
+      togglePasswordButton.addEventListener("click", function () {
+        togglePassword("register-password", this);
+      });
+    }
   }
 });
 
@@ -178,4 +189,17 @@ function showMessage(message, type) {
   setTimeout(() => {
     messageDiv.remove();
   }, 7000);
+}
+
+function togglePassword(inputId, button) {
+  const input = document.getElementById("register-password");
+  const icon = button.querySelector("i");
+
+  if (input.type === "password") {
+    input.type = "text";
+    icon.className = "bx bx-show";
+  } else {
+    input.type = "password";
+    icon.className = "bx bx-hide";
+  }
 }

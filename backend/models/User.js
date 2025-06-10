@@ -23,6 +23,17 @@ const userSchema = new mongoose.Schema({
   profile: {
     displayName: String,
     photoURL: String
+  },
+  learningPreferences: {
+    selectedLanguage: {
+      type: String,
+      enum: ['english', 'german', null],
+      default: null
+    },
+    languageSetAt: {
+      type: Date,
+      default: null
+    }
   }
 });
 

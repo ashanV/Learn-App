@@ -21,7 +21,12 @@
                 <h2>Zaloguj się do Vervly</h2>
                 <form>
                     <input id="login-email" type="email" required placeholder="Adres email">
-                    <input id="login-password" type="password" required placeholder="Hasło">
+                    <div class="password-container">
+                        <input id="login-password" type="password" required placeholder="Hasło">
+                        <button type="button" class="password-toggle">
+                            <i class="bx bx-hide"></i>
+                        </button>
+                    </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <label class="checkbox-label"><input id="remember-me" type="checkbox"><span>Zapamiętaj
                                 mnie</span></label>
@@ -34,6 +39,8 @@
                 </p>
             </div>
         </div>
+    </div>
 </body>
 <script type="module" src="/backend/auth/login.js"></script>
+
 </html>
