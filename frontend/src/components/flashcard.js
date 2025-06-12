@@ -1,4 +1,4 @@
-export function initializeFiszki() {
+export function initializeFlashcard() {
   const sourceWordEl = document.getElementById("sourceWord");
   const translationInput = document.getElementById("translationInput");
   const checkButton = document.getElementById("checkButton");

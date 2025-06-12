@@ -1,7 +1,7 @@
-import { initializeFiszki } from './components/fiszki.js';
+import { initializeFlashcard } from './components/flashcard.js';
 
 if (document.getElementById('dashboardPage')) {
-    initializeFiszki();
+    initializeFlashcard();
 }
 
 console.log("Główny skrypt aplikacji załadowany.");
