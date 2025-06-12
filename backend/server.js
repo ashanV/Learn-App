@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import User from "./models/User.js";
+import Word from "./models/Word.js";
 
 const app = express();
 const PORT = 5000;
@@ -63,8 +64,8 @@ app.post("/api/register", async (req, res) => {
       lastLogin: new Date(),
       learningPreferences: {
         selectedLanguage: null,
-        languageSetAt: null
-      }
+        languageSetAt: null,
+      },
     });
 
     await newUser.save();
@@ -85,6 +86,72 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+// Downloading a random word
+app.get("/api/words/random", async (req, res) => {
+  try {
+    const { lang } = req.query; 
+
+    if (!lang) {
+      return res
+        .status(400)
+        .json({ message: "Parametr 'lang' jest wymagany." });
+    }
+
+    // We use MongoDB aggregation to efficiently randomize a single document
+    const randomWord = await Word.aggregate([
+      { $match: { language: lang } },
+      { $sample: { size: 1 } },
+    ]);
+
+    if (!randomWord || randomWord.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Nie znaleziono słówek dla podanego języka." });
+    }
+
+    res.status(200).json(randomWord[0]);
+  } catch (error) {
+    console.error("Błąd pobierania słówka:", error);
+    res.status(500).json({ message: "Błąd serwera podczas pobierania słówka" });
+  }
+});
+
+// Checking the translation
+app.post("/api/words/check", async (req, res) => {
+  try {
+    const { sourceWord, userAnswer, language } = req.body;
+
+    if (!sourceWord || !userAnswer || !language) {
+      return res
+        .status(400)
+        .json({ message: "Wymagane są: sourceWord, userAnswer i language." });
+    }
+
+    const wordInDb = await Word.findOne({ sourceWord, language });
+
+    if (!wordInDb) {
+      return res
+        .status(404)
+        .json({ message: "Podane słowo nie istnieje w bazie." });
+    }
+
+    // We compare answers ignoring case and trailing whitespace
+    const isCorrect =
+      wordInDb.polishTranslation.trim().toLowerCase() ===
+      userAnswer.trim().toLowerCase();
+
+    res.status(200).json({
+      correct: isCorrect,
+      correctAnswer: wordInDb.polishTranslation,
+    });
+  } catch (error) {
+    console.error("Błąd sprawdzania tłumaczenia:", error);
+    res
+      .status(500)
+      .json({ message: "Błąd serwera podczas sprawdzania tłumaczenia" });
+  }
+});
+
 // Set user language preference
 app.post("/api/user/set-language", async (req, res) => {
   try {
@@ -97,7 +164,7 @@ app.post("/api/user/set-language", async (req, res) => {
     }
 
     // Validate language if provided
-    if (selectedLanguage && !['english', 'german'].includes(selectedLanguage)) {
+    if (selectedLanguage && !["english", "german"].includes(selectedLanguage)) {
       return res.status(400).json({
         message: "Nieprawidłowy język. Dostępne opcje: english, german",
       });
@@ -107,8 +174,10 @@ app.post("/api/user/set-language", async (req, res) => {
     const user = await User.findOneAndUpdate(
       { firebaseUid },
       {
-        'learningPreferences.selectedLanguage': selectedLanguage,
-        'learningPreferences.languageSetAt': selectedLanguage ? new Date() : null
+        "learningPreferences.selectedLanguage": selectedLanguage,
+        "learningPreferences.languageSetAt": selectedLanguage
+          ? new Date()
+          : null,
       },
       { new: true }
     );
@@ -120,13 +189,13 @@ app.post("/api/user/set-language", async (req, res) => {
     }
 
     res.status(200).json({
-      message: selectedLanguage 
-        ? "Język został zapisany pomyślnie" 
+      message: selectedLanguage
+        ? "Język został zapisany pomyślnie"
         : "Wybór języka został pominięty",
       user: {
         id: user._id,
         email: user.email,
-        learningPreferences: user.learningPreferences
+        learningPreferences: user.learningPreferences,
       },
     });
   } catch (error) {
@@ -171,7 +240,7 @@ app.post("/api/login", async (req, res) => {
         email: user.email,
         lastLogin: user.lastLogin,
         profile: user.profile,
-        learningPreferences: user.learningPreferences
+        learningPreferences: user.learningPreferences,
       },
     });
   } catch (error) {
@@ -244,7 +313,7 @@ app.get("/api/user/:firebaseUid", async (req, res) => {
         createdAt: user.createdAt,
         lastLogin: user.lastLogin,
         profile: user.profile,
-        learningPreferences: user.learningPreferences
+        learningPreferences: user.learningPreferences,
       },
     });
   } catch (error) {
@@ -282,7 +351,7 @@ app.put("/api/user/:firebaseUid", async (req, res) => {
         id: user._id,
         email: user.email,
         profile: user.profile,
-        learningPreferences: user.learningPreferences
+        learningPreferences: user.learningPreferences,
       },
     });
   } catch (error) {
@@ -300,7 +369,7 @@ app.put("/api/user/:firebaseUid/language", async (req, res) => {
     const { selectedLanguage } = req.body;
 
     // Validate language
-    if (selectedLanguage && !['english', 'german'].includes(selectedLanguage)) {
+    if (selectedLanguage && !["english", "german"].includes(selectedLanguage)) {
       return res.status(400).json({
         message: "Nieprawidłowy język. Dostępne opcje: english, german",
       });
@@ -309,8 +378,8 @@ app.put("/api/user/:firebaseUid/language", async (req, res) => {
     const user = await User.findOneAndUpdate(
       { firebaseUid },
       {
-        'learningPreferences.selectedLanguage': selectedLanguage,
-        'learningPreferences.languageSetAt': new Date()
+        "learningPreferences.selectedLanguage": selectedLanguage,
+        "learningPreferences.languageSetAt": new Date(),
       },
       { new: true }
     );
@@ -326,7 +395,7 @@ app.put("/api/user/:firebaseUid/language", async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        learningPreferences: user.learningPreferences
+        learningPreferences: user.learningPreferences,
       },
     });
   } catch (error) {
