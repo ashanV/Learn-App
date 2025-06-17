@@ -2,8 +2,8 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="styles.css" />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <title>Dashboard</title>
@@ -11,7 +11,7 @@
 
 <body>
     <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none;">
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
@@ -20,7 +20,7 @@
     <!-- Sidebar -->
     <aside id="sidebar">
         <div class="logo-dashboard-container">
-            <img src="./assets/logo.png" alt="logo" class="logo-dashboard">
+            <img src="./assets/logo.png" alt="logo" class="logo-dashboard" />
         </div>
         <nav class="dashboard-nav">
             <a href="#" onclick="showPage('dashboardPage')" class="active">
@@ -91,7 +91,6 @@
 
     <!-- Main Content -->
     <div class="main-content">
-
         <div class="decorative-shapes-dashboard">
             <div class="shape shape-1-dashboard"></div>
             <div class="shape shape-2-dashboard"></div>
@@ -100,7 +99,13 @@
 
         <div class="dashboard-container">
             <div id="dashboardPage" class="page">
-                <div class="dashboard-card" id="flashcard-container">
+
+            </div>
+        </div>
+
+        <div class="modes-container">
+            <div id="modesPage" class="page" style="display: none">
+                <div class="flashcard-card" id="flashcard-container">
                     <h1>Panel Główny</h1>
 
                     <div class="flashcard-start-container" id="initialView">
@@ -108,7 +113,7 @@
                         <button class="btn btn-start" id="startButton">START</button>
                     </div>
 
-                    <div id="flashcardView" style="display: none;">
+                    <div id="flashcardView" style="display: none">
                         <div class="progress-container">
                             <div class="progress-bar" id="progressBar"></div>
                             <span id="progressText">Słowo 0/0</span>
@@ -120,11 +125,15 @@
                         </div>
 
                         <input type="text" class="translation-input" id="translationInput"
-                            placeholder="Wpisz tłumaczenie po polsku...">
+                            placeholder="Wpisz tłumaczenie po polsku..." />
 
                         <div class="button-group">
-                            <button class="btn btn-check" id="checkButton">✓ Sprawdź</button>
-                            <button class="btn btn-next" id="nextButton">➜ Pomiń / Następne</button>
+                            <button class="btn btn-check" id="checkButton">
+                                ✓ Sprawdź
+                            </button>
+                            <button class="btn btn-next" id="nextButton">
+                                ➜ Pomiń / Następne
+                            </button>
                         </div>
 
                         <div class="feedback-area" id="feedbackArea"></div>
@@ -134,21 +143,27 @@
                             <div class="stats-grid">
                                 <div class="stat-item">
                                     <div class="stat-label">Poprawne</div>
-                                    <div class="stat-value correct-count" id="correctCount">0</div>
+                                    <div class="stat-value correct-count" id="correctCount">
+                                        0
+                                    </div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-label">Błędne</div>
-                                    <div class="stat-value incorrect-count" id="incorrectCount">0</div>
+                                    <div class="stat-value incorrect-count" id="incorrectCount">
+                                        0
+                                    </div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-label">Dokładność</div>
-                                    <div class="stat-value accuracy-count" id="accuracy">0%</div>
+                                    <div class="stat-value accuracy-count" id="accuracy">
+                                        0%
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="resultsView" style="display: none;">
+                    <div id="resultsView" style="display: none">
                         <h2>Wyniki Sesji</h2>
                         <table class="results-table">
                             <thead>
@@ -159,28 +174,47 @@
                                     <th>Wynik</th>
                                 </tr>
                             </thead>
-                            <tbody id="resultsTableBody">
-                            </tbody>
+                            <tbody id="resultsTableBody"></tbody>
                         </table>
-                        <button class="btn btn-start" id="playAgainButton">Zagraj Ponownie</button>
-                    </div>
-                </div>
-
-                <div id="wordLimitModal" class="modal-overlay" style="display: none;">
-                    <div class="modal-content">
-                        <h2>Wybierz liczbę słów</h2>
-                        <p>Ile słówek chcesz przećwiczyć w tej sesji?</p>
-                        <div class="modal-buttons">
-                            <button class="btn" data-limit="5">5</button>
-                            <button class="btn" data-limit="10">10</button>
-                            <button class="btn" data-limit="20">20</button>
-                            <button class="btn" data-limit="50">50</button>
-                        </div>
-                        <button class="btn-close-modal" id="closeModalButton">×</button>
+                        <button class="btn btn-start" id="playAgainButton">
+                            Zagraj Ponownie
+                        </button>
                     </div>
                 </div>
             </div>
+            <div id="wordLimitModal" class="modal-overlay" style="display: none">
+                <div class="modal-content">
+                    <h2>Wybierz liczbę słów</h2>
+                    <p>Ile słówek chcesz przećwiczyć w tej sesji?</p>
+                    <div class="modal-buttons">
+                        <button class="btn" data-limit="5">5</button>
+                        <button class="btn" data-limit="10">10</button>
+                        <button class="btn" data-limit="20">20</button>
+                        <button class="btn" data-limit="50">50</button>
+                    </div>
+                    <button class="btn-close-modal" id="closeModalButton">×</button>
+                </div>
+            </div>
         </div>
+
+        <div class="stats-container">
+            <div id="statsPage" class="page" style="display: none">
+                <h1>Moje Postępy</h1>
+            </div>
+        </div>
+
+        <div class="profile-container">
+            <div id="profilePage" class="page" style="display: none">
+                <h1>Mój Profil</h1>
+            </div>
+        </div>
+
+        <div class="settings-container">
+            <div id="settingsPage" class="page" style="display: none">
+                <h1>Ustawienia</h1>
+            </div>
+        </div>
+
     </div>
 </body>
 <script type="module" src="/frontend/src/app.js"></script>
