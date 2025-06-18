@@ -99,7 +99,71 @@
 
         <div class="dashboard-container">
             <div id="dashboardPage" class="page">
+                <!-- Welcome Section -->
+                <div class="dashboard-welcome">
+                    <h1>Witaj ponownie, <span id="userName">Anna</span>! 👋</h1>
+                </div>
 
+                <!-- Actions Card -->
+                <div class="dashboard-card">
+                    <h2>
+                        <span class="icon">🎯</span>
+                        Co chcesz dzisiaj robić?
+                    </h2>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="startNewSession()">
+                            <span class="icon">🚀</span>
+                            NOWA SESJA
+                        </button>
+                        <button class="action-btn secondary" onclick="reviewDifficultWords()">
+                            <span class="icon">🔄</span>
+                            POWTÓRZ TRUDNE SŁÓWKA
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistics Card -->
+                <div class="dashboard-card">
+                    <h2>
+                        <span class="icon">📊</span>
+                        Twoje statystyki
+                    </h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="masteredWords">🏆 247</div>
+                            <div class="stat-label">Opanowane słówka </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="dailyStreak">🔥 7</div>
+                            <div class="stat-label">Dzienna passa</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="accuracy">🎯 92%</div>
+                            <div class="stat-label">Dokładność</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Goal Card -->
+                <div class="dashboard-card daily-goal-card">
+                    <h2>
+                        <span class="icon">🎯</span>
+                        Cel dzienny słówek
+                    </h2>
+                    <div class="goal-progress">
+                        <div class="progress-text">
+                            <span><strong id="completedWords">10</strong> z <strong id="dailyGoal">20</strong>
+                                słówek</span>
+                            <span id="goalPercentage">50%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="goalProgressBar"></div>
+                        </div>
+                    </div>
+                    <button class="goal-btn">
+                        USTAW CEL DZIENNY
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -143,19 +207,19 @@
                             <div class="stats-grid">
                                 <div class="stat-item">
                                     <div class="stat-label">Poprawne</div>
-                                    <div class="stat-value correct-count" id="correctCount">
+                                    <div class="stat-value correct-count" id="sessionCorrectCount">
                                         0
                                     </div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-label">Błędne</div>
-                                    <div class="stat-value incorrect-count" id="incorrectCount">
+                                    <div class="stat-value incorrect-count" id="sessionIncorrectCount">
                                         0
                                     </div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-label">Dokładność</div>
-                                    <div class="stat-value accuracy-count" id="accuracy">
+                                    <div class="stat-value accuracy-count" id="sessionAccuracy">
                                         0%
                                     </div>
                                 </div>

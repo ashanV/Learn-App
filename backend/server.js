@@ -86,10 +86,254 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+// Set a daily vocabulary goal
+app.put("/api/user/:firebaseUid/daily-goal", async (req, res) => {
+  try {
+    const { firebaseUid } = req.params;
+    const { dailyGoal } = req.body;
+
+    // Daily goal validation
+    if (
+      !dailyGoal ||
+      typeof dailyGoal !== "number" ||
+      dailyGoal < 1 ||
+      dailyGoal > 100
+    ) {
+      return res.status(400).json({
+        message: "Cel dzienny musi być liczbą między 1 a 100",
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        "learningPreferences.dailyGoal": dailyGoal,
+        "learningPreferences.dailyGoalSetAt": new Date(),
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Użytkownik nie został znaleziony",
+      });
+    }
+
+    res.status(200).json({
+      message: "Cel dzienny został zaktualizowany pomyślnie",
+      dailyGoal: user.learningPreferences.dailyGoal,
+      dailyGoalSetAt: user.learningPreferences.dailyGoalSetAt,
+    });
+  } catch (error) {
+    console.error("Błąd aktualizacji celu dziennego:", error);
+    res.status(500).json({
+      message: "Błąd serwera podczas aktualizacji celu dziennego",
+    });
+  }
+});
+
+// Get user daily stats
+app.get("/api/user/:firebaseUid/daily-stats", async (req, res) => {
+  try {
+    const { firebaseUid } = req.params;
+
+    const user = await User.findOne({ firebaseUid });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Użytkownik nie został znaleziony",
+      });
+    }
+
+    // Check if today's statistics are up to date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastCompletedDate = user.dailyStats.lastCompletedDate
+      ? new Date(user.dailyStats.lastCompletedDate)
+      : null;
+
+    let completedWords = 0;
+    let streak = user.dailyStats.streak || 0;
+
+    // If last activity was today, keep current progress
+    if (
+      lastCompletedDate &&
+      lastCompletedDate.toDateString() === today.toDateString()
+    ) {
+      completedWords = user.dailyStats.completedWords || 0;
+    } else if (lastCompletedDate) {
+      // Check if the series has not been broken
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (lastCompletedDate.toDateString() !== yesterday.toDateString()) {
+        // Series interrupted - reset
+        streak = 0;
+        await User.findOneAndUpdate(
+          { firebaseUid },
+          {
+            "dailyStats.streak": 0,
+            "dailyStats.completedWords": 0,
+          }
+        );
+      }
+    }
+
+    const dailyGoal = user.learningPreferences.dailyGoal || 10;
+    const progressPercentage = Math.round((completedWords / dailyGoal) * 100);
+
+    res.status(200).json({
+      dailyGoal,
+      completedWords,
+      progressPercentage: Math.min(progressPercentage, 100),
+      streak,
+      goalAchieved: completedWords >= dailyGoal,
+    });
+  } catch (error) {
+    console.error("Błąd pobierania statystyk dziennych:", error);
+    res.status(500).json({
+      message: "Błąd serwera podczas pobierania statystyk dziennych",
+    });
+  }
+});
+
+// Update daily goal progress (call after correct answer)
+app.post("/api/user/:firebaseUid/update-daily-progress", async (req, res) => {
+  try {
+    const { firebaseUid } = req.params;
+
+    const user = await User.findOne({ firebaseUid });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Użytkownik nie został znaleziony",
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastCompletedDate = user.dailyStats.lastCompletedDate
+      ? new Date(user.dailyStats.lastCompletedDate)
+      : null;
+
+    let completedWords = user.dailyStats.completedWords || 0;
+    let streak = user.dailyStats.streak || 0;
+
+    // Check if this is the first progress today
+    if (
+      !lastCompletedDate ||
+      lastCompletedDate.toDateString() !== today.toDateString()
+    ) {
+      // New day
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Check if the series is continuing
+      if (
+        lastCompletedDate &&
+        lastCompletedDate.toDateString() === yesterday.toDateString()
+      ) {
+        const dailyGoal = user.learningPreferences.dailyGoal || 10;
+        const yesterdayCompleted = user.dailyStats.completedWords || 0;
+
+        if (yesterdayCompleted >= dailyGoal) {
+          streak += 1;
+        }
+      } else if (lastCompletedDate) {
+        streak = 0;
+      }
+
+      completedWords = 1;
+    } else {
+      completedWords += 1;
+    }
+
+    // Update database
+    const updatedUser = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        "dailyStats.completedWords": completedWords,
+        "dailyStats.lastCompletedDate": new Date(),
+        "dailyStats.streak": streak,
+      },
+      { new: true }
+    );
+
+    const dailyGoal = updatedUser.learningPreferences.dailyGoal || 10;
+    const progressPercentage = Math.round((completedWords / dailyGoal) * 100);
+    const goalAchieved = completedWords >= dailyGoal;
+
+    // If the goal was achieved for the first time today
+    if (goalAchieved && completedWords === dailyGoal) {
+      await User.findOneAndUpdate(
+        { firebaseUid },
+        {
+          "dailyStats.streak": streak + 1,
+        }
+      );
+      streak += 1;
+    }
+
+    res.status(200).json({
+      message: "Postęp zaktualizowany pomyślnie",
+      dailyGoal,
+      completedWords,
+      progressPercentage: Math.min(progressPercentage, 100),
+      streak,
+      goalAchieved,
+      goalJustAchieved: goalAchieved && completedWords === dailyGoal,
+    });
+  } catch (error) {
+    console.error("Błąd aktualizacji postępu dziennego:", error);
+    res.status(500).json({
+      message: "Błąd serwera podczas aktualizacji postępu dziennego",
+    });
+  }
+});
+
+// Update user's overall stats after a session
+app.post("/api/user/:firebaseUid/update-overall-stats", async (req, res) => {
+  try {
+    const { firebaseUid } = req.params;
+    const { correctAnswers, incorrectAnswers } = req.body;
+
+    if (
+      typeof correctAnswers !== "number" ||
+      typeof incorrectAnswers !== "number"
+    ) {
+      return res.status(400).json({ message: "Invalid stats provided." });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        $inc: {
+          "overallStats.totalCorrectAnswers": correctAnswers,
+          "overallStats.totalIncorrectAnswers": incorrectAnswers,
+        },
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Overall stats updated successfully." });
+  } catch (error) {
+    console.error("Error updating overall stats:", error);
+    res.status(500).json({
+      message: "Server error while updating overall stats",
+    });
+  }
+});
+
 // Downloading a random word
 app.get("/api/words/random", async (req, res) => {
   try {
-    const { lang } = req.query; 
+    const { lang } = req.query;
 
     if (!lang) {
       return res
@@ -297,7 +541,6 @@ app.post("/api/check-email", async (req, res) => {
 app.get("/api/user/:firebaseUid", async (req, res) => {
   try {
     const { firebaseUid } = req.params;
-
     const user = await User.findOne({ firebaseUid });
 
     if (!user) {
@@ -305,6 +548,17 @@ app.get("/api/user/:firebaseUid", async (req, res) => {
         message: "Użytkownik nie został znaleziony",
       });
     }
+
+    // Calculate overall accuracy
+    const totalAnswers =
+      (user.overallStats?.totalCorrectAnswers || 0) +
+      (user.overallStats?.totalIncorrectAnswers || 0);
+    const overallAccuracy =
+      totalAnswers > 0
+        ? Math.round(
+            ((user.overallStats.totalCorrectAnswers || 0) / totalAnswers) * 100
+          )
+        : 0;
 
     res.status(200).json({
       user: {
@@ -314,6 +568,8 @@ app.get("/api/user/:firebaseUid", async (req, res) => {
         lastLogin: user.lastLogin,
         profile: user.profile,
         learningPreferences: user.learningPreferences,
+        overallAccuracy: overallAccuracy,
+        masteredWords: user.overallStats?.totalCorrectAnswers || 0
       },
     });
   } catch (error) {
