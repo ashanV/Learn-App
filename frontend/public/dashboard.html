@@ -169,7 +169,171 @@
 
         <div class="modes-container">
             <div id="modesPage" class="page" style="display: none">
-                <div class="flashcard-card" id="flashcard-container">
+                <div class="page-header">
+                    <h1 class="page-title">🎯 Tryby Nauki</h1>
+                    <p class="page-subtitle">
+                        Wybierz tryb nauki, który najlepiej odpowiada Twoim potrzebom i stylowi uczenia się
+                    </p>
+                </div>
+
+                <div class="modes-grid">
+                    <!-- Flashcards Mode -->
+                    <div class="mode-tile" onclick="startMode('flashcards')">
+                        <div class="difficulty-badge difficulty-easy">Łatwy</div>
+                        <div class="mode-icon">🃏</div>
+                        <h3 class="mode-title">Fiszki Klasyczne</h3>
+                        <p class="mode-description">
+                            Tradycyjny sposób nauki z fiszkamis. Zobacz słowo, pomyśl o tłumaczeniu, sprawdź odpowiedź.
+                        </p>
+                        <ul class="mode-features">
+                            <li>Intuicyjny interfejs</li>
+                            <li>Możliwość oznaczania trudnych słów</li>
+                            <li>Statystyki postępów</li>
+                        </ul>
+                        <div class="mode-stats">
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">247</div>
+                                <div class="mode-stat-label">Ukończone</div>
+                            </div>
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">89%</div>
+                                <div class="mode-stat-label">Dokładność</div>
+                            </div>
+                        </div>
+                        <button class="mode-button">Rozpocznij</button>
+                    </div>
+
+                    <!-- Quiz Mode -->
+                    <div class="mode-tile" onclick="startMode('quiz')">
+                        <div class="difficulty-badge difficulty-medium">Średni</div>
+                        <div class="mode-icon">❓</div>
+                        <h3 class="mode-title">Quiz Wielokrotnego Wyboru</h3>
+                        <p class="mode-description">
+                            Testuj swoją wiedzę wybierając poprawną odpowiedź spośród kilku opcji.
+                        </p>
+                        <ul class="mode-features">
+                            <li>4 opcje do wyboru</li>
+                            <li>Natychmiastowa informacja zwrotna</li>
+                            <li>Punktacja czasowa</li>
+                        </ul>
+                        <div class="mode-stats">
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">156</div>
+                                <div class="mode-stat-label">Ukończone</div>
+                            </div>
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">76%</div>
+                                <div class="mode-stat-label">Dokładność</div>
+                            </div>
+                        </div>
+                        <button class="mode-button">Rozpocznij</button>
+                    </div>
+
+                    <!-- Writing Mode -->
+                    <div class="mode-tile" onclick="startMode('writing')">
+                        <div class="difficulty-badge difficulty-hard">Trudny</div>
+                        <div class="mode-icon">✍️</div>
+                        <h3 class="mode-title">Pisanie z Pamięci</h3>
+                        <p class="mode-description">
+                            Wpisz tłumaczenie z pamięci. Najskuteczniejszy sposób na zapamiętanie słów.
+                        </p>
+                        <ul class="mode-features">
+                            <li>Aktywne przypominanie</li>
+                            <li>Sprawdzanie pisowni</li>
+                            <li>Podpowiedzi liter</li>
+                        </ul>
+                        <div class="mode-stats">
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">98</div>
+                                <div class="mode-stat-label">Ukończone</div>
+                            </div>
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">82%</div>
+                                <div class="mode-stat-label">Dokładność</div>
+                            </div>
+                        </div>
+                        <button class="mode-button">Rozpocznij</button>
+                    </div>
+
+                    <!-- Speed Challenge -->
+                    <div class="mode-tile" onclick="startMode('speed')">
+                        <div class="difficulty-badge difficulty-hard">Trudny</div>
+                        <div class="mode-icon">⚡</div>
+                        <h3 class="mode-title">Wyzwanie Szybkości</h3>
+                        <p class="mode-description">
+                            Sprawdź jak szybko potrafisz tłumaczyć słowa. Wyścig z czasem!
+                        </p>
+                        <ul class="mode-features">
+                            <li>Ograniczony czas na odpowiedź</li>
+                            <li>Ranking szybkości</li>
+                            <li>Bonusowe punkty</li>
+                        </ul>
+                        <div class="mode-stats">
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">34</div>
+                                <div class="mode-stat-label">Ukończone</div>
+                            </div>
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">2.1s</div>
+                                <div class="mode-stat-label">Śr. czas</div>
+                            </div>
+                        </div>
+                        <button class="mode-button">Rozpocznij</button>
+                    </div>
+
+                    <!-- Audio Mode -->
+                    <div class="mode-tile coming-soon">
+                        <div class="difficulty-badge difficulty-medium">Średni</div>
+                        <div class="mode-icon">🎧</div>
+                        <h3 class="mode-title">Nauka przez Słuch</h3>
+                        <p class="mode-description">
+                            Słuchaj wymowy słów i ucz się przez audio. Idealny dla audytywnych uczniów.
+                        </p>
+                        <ul class="mode-features">
+                            <li>Nagrania native speakerów</li>
+                            <li>Powtarzanie wymowy</li>
+                            <li>Nauka akcentu</li>
+                        </ul>
+                        <div class="mode-stats">
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">-</div>
+                                <div class="mode-stat-label">Ukończone</div>
+                            </div>
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">-</div>
+                                <div class="mode-stat-label">Dokładność</div>
+                            </div>
+                        </div>
+                        <button class="mode-button">Rozpocznij</button>
+                    </div>
+
+                    <!-- Memory Palace -->
+                    <div class="mode-tile coming-soon">
+                        <div class="difficulty-badge difficulty-medium">Średni</div>
+                        <div class="mode-icon">🏰</div>
+                        <h3 class="mode-title">Pałac Pamięci</h3>
+                        <p class="mode-description">
+                            Ucz się słów w kontekście historii i skojarzeń wizualnych.
+                        </p>
+                        <ul class="mode-features">
+                            <li>Wizualne skojarzenia</li>
+                            <li>Narracyjne uczenie</li>
+                            <li>Techniki mnemoniczne</li>
+                        </ul>
+                        <div class="mode-stats">
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">-</div>
+                                <div class="mode-stat-label">Ukończone</div>
+                            </div>
+                            <div class="mode-stat">
+                                <div class="mode-stat-value">-</div>
+                                <div class="mode-stat-label">Dokładność</div>
+                            </div>
+                        </div>
+                        <button class="mode-button">Rozpocznij</button>
+                    </div>
+                </div>
+                <!-- <div class="flashcard-card" id="flashcard-container">
                     <h1>Panel Główny</h1>
 
                     <div class="flashcard-start-container" id="initialView">
@@ -244,7 +408,7 @@
                             Zagraj Ponownie
                         </button>
                     </div>
-                </div>
+                </div> -->
             </div>
             <div id="wordLimitModal" class="modal-overlay" style="display: none">
                 <div class="modal-content">

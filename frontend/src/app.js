@@ -1,6 +1,10 @@
-import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
-import { auth } from '../../../backend/config/firebase-config.js';
+import {
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { auth } from "../../../backend/config/firebase-config.js";
 import { initializeFlashcard } from "./components/flashcard.js";
+import "./modes.js";
 import {
   setDailyGoal,
   loadDailyStats,
@@ -13,100 +17,85 @@ import {
 const pages = document.querySelectorAll(".page");
 const navLinks = document.querySelectorAll(".dashboard-nav a");
 
-if (document.getElementById("dashboardPage")) {
-  initializeFlashcard();
-}
-
-console.log("Główny skrypt aplikacji załadowany.");
-
 function showPage(pageId) {
-  // Hide all pages
-  pages.forEach((page) => {
-    page.style.display = "none";
-  });
+  pages.forEach((page) => (page.style.display = "none"));
 
-  // Show selected page
   const activePage = document.getElementById(pageId);
   if (activePage) {
     activePage.style.display = "block";
   }
 
-  // Manage 'active' class in navigation menu
   navLinks.forEach((link) => {
-    // Check if the href in the link matches the onclick call
-    if (link.getAttribute("onclick") === `showPage('${pageId}')`) {
-      link.classList.add("active");
-    } else {
-      link.classList.remove("active");
-    }
+    const isActive = link.getAttribute("onclick") === `showPage('${pageId}')`;
+    link.classList.toggle("active", isActive);
   });
+
+  if (pageId === "modesPage") {
+    setTimeout(() => {
+      const modesGrid = document.querySelector(".modes-grid");
+      const pageHeader = document.querySelector("#modesPage .page-header");
+      if (modesGrid) modesGrid.style.display = "grid";
+      if (pageHeader) pageHeader.style.display = "block";
+
+      const modeContainers = document.querySelectorAll(
+        ".mode-interface, .flashcard-card"
+      );
+      modeContainers.forEach((container) => {
+        container.style.display = "none";
+      });
+    }, 50);
+  }
 }
 
-// Make functions globally available
 window.showPage = showPage;
 window.setDailyGoal = setDailyGoal;
 window.setCustomDailyGoal = setCustomDailyGoal;
 window.closeDailyGoalModal = closeDailyGoalModal;
 
-// Show default page on load
-document.addEventListener("DOMContentLoaded", () => {
-  showPage("dashboardPage");
-});
-
-document.addEventListener("DOMContentLoaded", () => {
+function setupDashboardEvents() {
   const setGoalButton = document.querySelector(".daily-goal-card .goal-btn");
+  if (setGoalButton) {
+    setGoalButton.addEventListener("click", setDailyGoal);
+  }
+}
+
+async function loadDashboardData(user) {
   const userNameEl = document.getElementById("userName");
   const overallAccuracyEl = document.getElementById("accuracy");
   const masteredWordsEl = document.getElementById("masteredWords");
 
-  if (setGoalButton) {
-    setGoalButton.addEventListener("click", setDailyGoal);
+  try {
+    const response = await fetch(`http://localhost:5000/api/user/${user.uid}`);
+    if (!response.ok) throw new Error("Nie można pobrać profilu użytkownika.");
+
+    const data = await response.json();
+
+    if (userNameEl) userNameEl.textContent = user.displayName || "Użytkowniku";
+    if (overallAccuracyEl)
+      overallAccuracyEl.textContent = `🎯 ${data.user.overallAccuracy}%`;
+    if (masteredWordsEl)
+      masteredWordsEl.textContent = `🏆 ${data.user.masteredWords}`;
+
+    await loadDailyStats();
+  } catch (error) {
+    console.error("Błąd ładowania danych dashboardu:", error);
   }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  showPage("dashboardPage");
+  setupDashboardEvents();
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // User is signed in.
       await loadDashboardData(user);
       initializeFlashcard();
     } else {
-      // User is signed out.
-      window.location.href = "/frontend/public/index.html"; // Redirect to login page
+      window.location.href = "/frontend/public/index.html";
     }
   });
-
-  async function loadDashboardData(user) {
-    if (!user) return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/user/${user.uid}`
-      );
-      if (!response.ok) {
-        throw new Error("Could not fetch user profile.");
-      }
-      const data = await response.json();
-
-      // Update UI with user data
-      if (userNameEl) {
-        userNameEl.textContent = user.displayName || "Użytkowniku";
-      }
-      if (overallAccuracyEl) {
-        overallAccuracyEl.textContent = `🎯 ${data.user.overallAccuracy}%`;
-      }
-      if (masteredWordsEl) {
-        masteredWordsEl.textContent = `🏆 ${data.user.masteredWords}`;
-      }
-
-      // Load daily stats
-      await loadDailyStats();
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    }
-  }
 });
 
-// Make functions globally available for onclick handlers in HTML
 window.logout = () => {
-  signOut(auth).catch((error) => console.error("Logout Error:", error));
+  signOut(auth).catch((error) => console.error("Błąd wylogowania:", error));
 };
-
