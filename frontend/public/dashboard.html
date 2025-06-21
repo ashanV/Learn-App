@@ -433,7 +433,74 @@
 
         <div class="profile-container">
             <div id="profilePage" class="page" style="display: none">
-                <h1>Mój Profil</h1>
+
+                <div class="profile-settings-container">
+                    <h1 class="profile-title">Mój Profil</h1>
+                    <p class="profile-description">
+                        Zarządzaj swoimi danymi osobowymi i preferencjami konta. Możesz tutaj zmienić swój awatar, nazwę
+                        użytkownika, adres e-mail oraz hasło. Pamiętaj, aby po dokonaniu zmian kliknąć przycisk "Zapisz
+                        zmiany".
+                    </p>
+
+                    <form onsubmit="handleFormSubmit(event)">
+                        <div class="avatar-section">
+                            <img id="avatarPreview" src="https://placehold.co/160x160/004d40/FFFFFF?text=TY&font=Inter"
+                                alt="Awatar">
+                            <label for="avatarUpload" class="avatar-upload-btn">
+                                <span>📸</span> Zmień Awatar
+                            </label>
+                            <input type="file" id="avatarUpload" class="hidden" accept="image/*"
+                                onchange="handleAvatarUpload(event)">
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label for="profileName">👤 Nazwa użytkownika</label>
+                                <div class="input-group">
+                                    <input type="text" id="profileName" value="TesterPL" required>
+                                    <span class="input-icon">✓</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profileEmail">📧 Adres E-mail</label>
+                                <div class="input-group">
+                                    <input type="email" id="profileEmail" value="test@example.com" required>
+                                    <span class="input-icon">✓</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="section-divider">
+
+                        <div class="form-section">
+                            <h3>🔐 Zmień hasło</h3>
+
+                            <div class="form-group">
+                                <label for="currentPassword">Aktualne hasło</label>
+                                <input type="password" class="profile-reset-password" id="currentPassword" placeholder="Wprowadź aktualne hasło">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="newPassword">Nowe hasło</label>
+                                <input type="password" class="profile-reset-password" id="newPassword" placeholder="Wprowadź nowe hasło"
+                                    oninput="checkPasswordStrength()">
+                                <div class="password-strength-indicator">
+                                    <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmNewPassword">Potwierdź nowe hasło</label>
+                                <input type="password" class="profile-reset-password" id="confirmNewPassword" placeholder="Potwierdź nowe hasło">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="profile-form-button">
+                            💾 Zapisz zmiany
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
