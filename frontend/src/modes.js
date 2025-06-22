@@ -1,72 +1,85 @@
-import { initializeFlashcard } from './components/flashcard.js';
+import { initializeFlashcard } from "./components/flashcard.js";
 
 // Main function to start modes
 export function startMode(modeType) {
-   // Check if the mode is available
-    const modeElement = document.querySelector(`[onclick="startMode('${modeType}')"]`);
-    if (modeElement && modeElement.classList.contains('coming-soon')) {
-        showComingSoonModal(modeType);
-        return;
-    }
+  // Check if the mode is available
+  const modeElement = document.querySelector(
+    `[onclick="startMode('${modeType}')"]`
+  );
+  if (modeElement && modeElement.classList.contains("coming-soon")) {
+    showComingSoonModal(modeType);
+    return;
+  }
 
-    hideAllPages();
-    
-    switch(modeType) {
-        case 'flashcards':
-            startFlashcardsMode();
-            break;
-        case 'quiz':
-            startQuizMode();
-            break;
-        case 'writing':
-            startWritingMode();
-            break;
-        case 'speed':
-            startSpeedMode();
-            break;
-        default:
-            console.error('Nieznany tryb:', modeType);
-            showPage('modesPage');
-    }
+  hideAllPages();
+  hideModeContainers();
+
+  switch (modeType) {
+    case "flashcards":
+      startFlashcardsMode();
+      break;
+    case "quiz":
+      startQuizMode();
+      break;
+    case "writing":
+      startWritingMode();
+      break;
+    case "speed":
+      startSpeedMode();
+      break;
+    default:
+      console.error("Nieznany tryb:", modeType);
+      showPage("modesPage");
+  }
 }
 
 // Function to hide all pages
 function hideAllPages() {
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => {
-        page.style.display = 'none';
-    });
+  const pages = document.querySelectorAll(".page");
+  pages.forEach((page) => {
+    page.style.display = "none";
+  });
+}
+
+// function to hide all mode containers
+function hideModeContainers() {
+  const modeContainers = document.querySelectorAll(
+    "#flashcard-container, #quiz-container, .mode-interface, .flashcard-card, .quiz-card"
+  );
+  modeContainers.forEach((container) => {
+    container.style.display = "none";
+  });
 }
 
 // Flashcards Mode (Classic Flashcards)
 function startFlashcardsMode() {
-    document.getElementById('modesPage').style.display = 'block';
-    
-    const modesGrid = document.querySelector('.modes-grid');
-    const pageHeader = document.querySelector('#modesPage .page-header');
-    
-    if (modesGrid) modesGrid.style.display = 'none';
-    if (pageHeader) pageHeader.style.display = 'none';
-    
-    // Create or show flashcard container
-    let flashcardContainer = document.getElementById('flashcard-container');
-    if (!flashcardContainer) {
-        flashcardContainer = createFlashcardInterface();
-        document.getElementById('modesPage').appendChild(flashcardContainer);
-    }
-    
-    flashcardContainer.style.display = 'block';
-    
-    initializeFlashcard();
+  document.getElementById("modesPage").style.display = "block";
+
+  const modesGrid = document.querySelector(".modes-grid");
+  const pageHeader = document.querySelector("#modesPage .page-header");
+
+  if (modesGrid) modesGrid.style.display = "none";
+  if (pageHeader) pageHeader.style.display = "none";
+
+  // Create or show flashcard container
+  let flashcardContainer = document.getElementById("flashcard-container");
+  if (!flashcardContainer) {
+    flashcardContainer = createFlashcardInterface();
+    document.getElementById("modesPage").appendChild(flashcardContainer);
+  }
+
+  flashcardContainer.style.display = "block";
+
+  initializeFlashcard();
 }
 
 // Function to create flashcard interface
 function createFlashcardInterface() {
-    const container = document.createElement('div');
-    container.id = 'flashcard-container';
-    container.className = 'flashcard-card';
-    
-    container.innerHTML = `
+  const container = document.createElement("div");
+  container.id = "flashcard-container";
+  container.className = "flashcard-card";
+
+  container.innerHTML = `
         <div class="mode-header">
             <button class="back-button" onclick="returnToModes()">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +100,8 @@ function createFlashcardInterface() {
                 <div class="progress-bar" id="progressBar"></div>
                 <span id="progressText">Słowo 0/0</span>
             </div>
-
+            
+            
             <div class="word-card" id="wordCard">
                 <p class="word-label">Przetłumacz słowo:</p>
                 <p class="english-word" id="sourceWord">Loading...</p>
@@ -145,34 +159,102 @@ function createFlashcardInterface() {
             </div>
         </div>
     `;
-    
-    return container;
+
+  return container;
 }
 
-// Quiz Mode (placeholder for now)
+// Quiz Mode 
 function startQuizMode() {
-    document.getElementById('modesPage').style.display = 'block';
-    showModeInterface('quiz', '❓ Quiz Wielokrotnego Wyboru', createQuizInterface());
+  document.getElementById("modesPage").style.display = "block";
+
+  const modesGrid = document.querySelector(".modes-grid");
+  const pageHeader = document.querySelector("#modesPage .page-header");
+
+  if (modesGrid) modesGrid.style.display = "none";
+  if (pageHeader) pageHeader.style.display = "none";
+
+  // Create or show quiz container
+  let quizContainer = document.getElementById("quiz-container");
+  if (!quizContainer) {
+    quizContainer = createQuizInterface();
+    document.getElementById("modesPage").appendChild(quizContainer);
+  }
+
+  quizContainer.style.display = "block";
 }
 
+// Function to create quiz interface
 function createQuizInterface() {
-    return `
-        <div class="quiz-container">
-            <h2>Quiz będzie dostępny wkrótce!</h2>
-            <p>Tryb wielokrotnego wyboru jest w trakcie tworzenia.</p>
-            <button class="btn btn-primary" onclick="returnToModes()">Powrót do trybów</button>
+  const quizContainer = document.createElement("div");
+  quizContainer.id = "quiz-container";
+  quizContainer.className = "quiz-card";
+
+  quizContainer.innerHTML = ` <div class="quiz-container">
+        <div class="mode-header">
+            <button class="back-button" onclick="returnToModes()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Powrót do trybów
+            </button>
+            <h1>🧠 Quiz Wielokrotnego Wyboru</h1>
+            <p class="quiz-subtitle">Testuj swoją wiedzę wybierając poprawną odpowiedź spośród kilku opcji</p>
         </div>
+
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+
+        <div class="quiz-stats">
+            <div class="quiz-stat">
+                <div class="quiz-stat-label">Pytanie</div>
+                <div class="quiz-stat-value" id="questionCount">1/10</div>
+            </div>
+            <div class="quiz-stat">
+                <div class="quiz-stat-label">Punkty</div>
+                <div class="quiz-stat-value" id="score">0</div>
+            </div>
+            <div class="quiz-stat">
+                <div class="quiz-stat-label">Czas</div>
+                <div class="quiz-stat-value quiz-timer" id="timer">30s</div>
+            </div>
+        </div>
+
+        <div class="question-container" id="questionContainer">
+            <div class="question-number" id="questionNumber">Pytanie 1</div>
+            <div class="question" id="question">Jak powiedzieć "dziękuję" po angielsku?</div>
+            
+            <div class="quiz-options" id="options">
+                <div class="quiz-option" data-answer="0">Thank you</div>
+                <div class="quiz-option" data-answer="1">Please</div>
+                <div class="quiz-option" data-answer="2">Sorry</div>
+                <div class="quiz-option" data-answer="3">Hello</div>
+            </div>
+
+            <div class="feedback" id="feedback"></div>
+        </div>
+
+        <div class="controls">
+            <button class="quiz-btn" id="nextBtn" onclick="nextQuestion()" disabled>Następne pytanie</button>
+            <button class="quiz-btn" onclick="restartQuiz()">Restart</button>
+        </div>
+    </div>
     `;
+  return quizContainer;
 }
 
 // Writing mode (placeholder for now)
 function startWritingMode() {
-    document.getElementById('modesPage').style.display = 'block';
-    showModeInterface('writing', '✍️ Pisanie z Pamięci', createWritingInterface());
+  document.getElementById("modesPage").style.display = "block";
+  showModeInterface(
+    "writing",
+    "✍️ Pisanie z Pamięci",
+    createWritingInterface()
+  );
 }
 
 function createWritingInterface() {
-    return `
+  return `
         <div class="writing-container">
             <h2>Tryb pisania będzie dostępny wkrótce!</h2>
             <p>Zaawansowany tryb pisania z pamięci jest w przygotowaniu.</p>
@@ -183,12 +265,12 @@ function createWritingInterface() {
 
 // Speed ​​mode (placeholder for now)
 function startSpeedMode() {
-    document.getElementById('modesPage').style.display = 'block';
-    showModeInterface('speed', '⚡ Wyzwanie Szybkości', createSpeedInterface());
+  document.getElementById("modesPage").style.display = "block";
+  showModeInterface("speed", "⚡ Wyzwanie Szybkości", createSpeedInterface());
 }
 
 function createSpeedInterface() {
-    return `
+  return `
         <div class="speed-container">
             <h2>Wyzwanie szybkości będzie dostępne wkrótce!</h2>
             <p>Tryb na czas jest w trakcie implementacji.</p>
@@ -199,21 +281,21 @@ function createSpeedInterface() {
 
 // Auxiliary function for displaying the mode interface
 function showModeInterface(modeType, title, content) {
-    const modesGrid = document.querySelector('.modes-grid');
-    const pageHeader = document.querySelector('#modesPage .page-header');
-    
-    if (modesGrid) modesGrid.style.display = 'none';
-    if (pageHeader) pageHeader.style.display = 'none';
+  const modesGrid = document.querySelector(".modes-grid");
+  const pageHeader = document.querySelector("#modesPage .page-header");
 
-    let modeContainer = document.getElementById(`${modeType}-mode-container`);
-    if (!modeContainer) {
-        modeContainer = document.createElement('div');
-        modeContainer.id = `${modeType}-mode-container`;
-        modeContainer.className = 'mode-interface';
-        document.getElementById('modesPage').appendChild(modeContainer);
-    }
-    
-    modeContainer.innerHTML = `
+  if (modesGrid) modesGrid.style.display = "none";
+  if (pageHeader) pageHeader.style.display = "none";
+
+  let modeContainer = document.getElementById(`${modeType}-mode-container`);
+  if (!modeContainer) {
+    modeContainer = document.createElement("div");
+    modeContainer.id = `${modeType}-mode-container`;
+    modeContainer.className = "mode-interface";
+    document.getElementById("modesPage").appendChild(modeContainer);
+  }
+
+  modeContainer.innerHTML = `
         <div class="mode-header">
             <button class="back-button" onclick="returnToModes()">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,67 +307,67 @@ function showModeInterface(modeType, title, content) {
         </div>
         ${content}
     `;
-    
-    modeContainer.style.display = 'block';
+
+  modeContainer.style.display = "block";
 }
 
 // Return to modes function
-window.returnToModes = function() {
-    const modeContainers = document.querySelectorAll('.mode-interface, .flashcard-card');
-    modeContainers.forEach(container => {
-        container.style.display = 'none';
-    });
-    
-    const modesGrid = document.querySelector('.modes-grid');
-    const pageHeader = document.querySelector('#modesPage .page-header');
-    
-    if (modesGrid) modesGrid.style.display = 'grid';
-    if (pageHeader) pageHeader.style.display = 'block';
+window.returnToModes = function () {
+  // Ukryj wszystkie kontenery trybów
+  hideModeContainers();
+
+  const modesGrid = document.querySelector(".modes-grid");
+  const pageHeader = document.querySelector("#modesPage .page-header");
+
+  if (modesGrid) modesGrid.style.display = "grid";
+  if (pageHeader) pageHeader.style.display = "block";
 };
 
 // Function for "coming soon" modes
 function showComingSoonModal(modeType) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.display = 'flex';
-    
-    const modeNames = {
-        'audio': 'Nauka przez Słuch',
-        'memory-palace': 'Pałac Pamięci'
-    };
-    
-    modal.innerHTML = `
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.style.display = "flex";
+
+  const modeNames = {
+    audio: "Nauka przez Słuch",
+    "memory-palace": "Pałac Pamięci",
+  };
+
+  modal.innerHTML = `
         <div class="modal-content">
             <h2>🚧 Tryb w przygotowaniu</h2>
-            <p><strong>${modeNames[modeType] || 'Ten tryb'}</strong> będzie dostępny wkrótce!</p>
+            <p><strong>${
+              modeNames[modeType] || "Ten tryb"
+            }</strong> będzie dostępny wkrótce!</p>
             <p>Pracujemy nad implementacją tej funkcji. Tymczasem sprawdź inne dostępne tryby nauki.</p>
             <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">
                 Rozumiem
             </button>
         </div>
     `;
-    
-    document.body.appendChild(modal);
-    
-    // Close the modal when clicking on the background
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    });
+
+  document.body.appendChild(modal);
+
+  // Close the modal when clicking on the background
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
 }
 
 // Additional features for a quick start from the main dashboard
-window.startNewSession = function() {
-    showPage('modesPage');
+window.startNewSession = function () {
+  showPage("modesPage");
 };
 
-window.reviewDifficultWords = function() {
-    showPage('modesPage');
-    // logic for difficult words
-    setTimeout(() => {
-        alert('Funkcja powtórki trudnych słówek będzie dostępna wkrótce!');
-    }, 300);
+window.reviewDifficultWords = function () {
+  showPage("modesPage");
+  // logic for difficult words
+  setTimeout(() => {
+    alert("Funkcja powtórki trudnych słówek będzie dostępna wkrótce!");
+  }, 300);
 };
 
 window.startMode = startMode;
