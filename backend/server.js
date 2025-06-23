@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import User from "./models/User.js";
 import Word from "./models/Word.js";
+import quizRoutes from "./routes/quizroutes.js";
 
 const app = express();
 const PORT = 5000;
@@ -33,6 +34,10 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // API Routes
+
+
+// Quiz routes
+app.use("/api/quiz", quizRoutes);
 
 // User registration
 app.post("/api/register", async (req, res) => {

@@ -1,29 +1,80 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  firebaseUid: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  createdAt: { type: Date, default: Date.now },
-  lastLogin: { type: Date },
+  firebaseUid: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+  },
   profile: {
-    displayName: { type: String },
-    photoURL: { type: String },
+    displayName: String,
+    photoURL: String,
   },
   learningPreferences: {
-    selectedLanguage: { type: String },
-    languageSetAt: { type: Date },
-    dailyGoal: { type: Number, default: 10 },
-    dailyGoalSetAt: { type: Date },
+    selectedLanguage: {
+      type: String,
+      enum: ["english", "german"],
+      default: null,
+    },
+    languageSetAt: Date,
+    dailyGoal: {
+      type: Number,
+      default: 10,
+      min: 1,
+      max: 100,
+    },
+    dailyGoalSetAt: Date,
   },
   dailyStats: {
-    completedWords: { type: Number, default: 0 },
-    lastCompletedDate: { type: Date },
-    streak: { type: Number, default: 0 },
+    completedWords: {
+      type: Number,
+      default: 0,
+    },
+    lastCompletedDate: Date,
+    streak: {
+      type: Number,
+      default: 0,
+    },
   },
   overallStats: {
-    totalCorrectAnswers: { type: Number, default: 0 },
-    totalIncorrectAnswers: { type: Number, default: 0 },
+    totalCorrectAnswers: {
+      type: Number,
+      default: 0,
+    },
+    totalIncorrectAnswers: {
+      type: Number,
+      default: 0,
+    },
   },
+  quizHistory: [
+    {
+      date: { type: Date, default: Date.now },
+      totalQuestions: { type: Number, required: true },
+      correctAnswers: { type: Number, required: true },
+      incorrectAnswers: { type: Number, required: true },
+      accuracyPercentage: { type: Number, required: true },
+      timeSpent: { type: Number, default: 0 },
+      results: [
+        {
+          questionId: String,
+          userAnswer: Number,
+          correctAnswer: Number,
+          isCorrect: Boolean,
+        },
+      ],
+    },
+  ],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  lastLogin: Date,
 });
 
 const User = mongoose.model("User", userSchema);
