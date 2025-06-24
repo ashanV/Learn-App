@@ -6,7 +6,17 @@ dotenv.config();
 
 // List of words to add
 const wordsToSeed = [
-
+  { language: "english", sourceWord: "jeździć", polishTranslation: "drive", difficulty: "easy" },
+  { language: "english", sourceWord: "cat", polishTranslation: "kot", difficulty: "easy" },
+  { language: "english", sourceWord: "bird", polishTranslation: "ptak", difficulty: "medium" },
+  { language: "english", sourceWord: "horse", polishTranslation: "koń", difficulty: "medium" },
+  { language: "english", sourceWord: "elephant", polishTranslation: "słoń", difficulty: "hard" },
+  { language: "english", sourceWord: "write", polishTranslation: "pisać", difficulty: "easy" },
+  { language: "english", sourceWord: "dog", polishTranslation: "pies", difficulty: "easy" },
+  { language: "english", sourceWord: "development", polishTranslation: "rozwój", difficulty: "hard" },
+  { language: "english", sourceWord: "government", polishTranslation: "rząd", difficulty: "hard" },
+  { language: "english", sourceWord: "car", polishTranslation: "samochód", difficulty: "easy" },
+  { language: "english", sourceWord: "search", polishTranslation: "szukanie", difficulty: "medium" },
 ];
 
 const seedDB = async () => {

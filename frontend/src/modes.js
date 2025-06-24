@@ -1,4 +1,5 @@
 import { initializeFlashcard } from "./components/flashcard.js";
+import { QuizManager } from "./components/quiz.js"; // Fixed import path
 
 // Main function to start modes
 export function startMode(modeType) {
@@ -163,7 +164,7 @@ function createFlashcardInterface() {
   return container;
 }
 
-// Quiz Mode 
+// Quiz Mode - Fixed implementation
 function startQuizMode() {
   document.getElementById("modesPage").style.display = "block";
 
@@ -181,6 +182,17 @@ function startQuizMode() {
   }
 
   quizContainer.style.display = "block";
+
+  // Initialize Quiz Manager properly
+  if (window.quizManager) {
+    window.quizManager = null; // Clear existing instance
+  }
+  
+  // Create new instance and initialize
+  window.quizManager = new QuizManager();
+  window.quizManager.init().catch(error => {
+    console.error('Błąd inicjalizacji quizu:', error);
+  });
 }
 
 // Function to create quiz interface
@@ -189,7 +201,8 @@ function createQuizInterface() {
   quizContainer.id = "quiz-container";
   quizContainer.className = "quiz-card";
 
-  quizContainer.innerHTML = ` <div class="quiz-container">
+  quizContainer.innerHTML = `
+    <div class="quiz-container">
         <div class="mode-header">
             <button class="back-button" onclick="returnToModes()">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,13 +235,10 @@ function createQuizInterface() {
 
         <div class="question-container" id="questionContainer">
             <div class="question-number" id="questionNumber">Pytanie 1</div>
-            <div class="question" id="question">Jak powiedzieć "dziękuję" po angielsku?</div>
+            <div class="question" id="question">Ładowanie pytań...</div>
             
             <div class="quiz-options" id="options">
-                <div class="quiz-option" data-answer="0">Thank you</div>
-                <div class="quiz-option" data-answer="1">Please</div>
-                <div class="quiz-option" data-answer="2">Sorry</div>
-                <div class="quiz-option" data-answer="3">Hello</div>
+                <!-- Options will be populated by QuizManager -->
             </div>
 
             <div class="feedback" id="feedback"></div>
@@ -313,7 +323,13 @@ function showModeInterface(modeType, title, content) {
 
 // Return to modes function
 window.returnToModes = function () {
-  // Ukryj wszystkie kontenery trybów
+  // Stop quiz if it's running
+  if (window.quizManager && window.quizManager.isQuizActive) {
+    window.quizManager.stopTimer();
+    window.quizManager.isQuizActive = false;
+  }
+
+  // Hide all mode containers
   hideModeContainers();
 
   const modesGrid = document.querySelector(".modes-grid");
@@ -370,4 +386,20 @@ window.reviewDifficultWords = function () {
   }, 300);
 };
 
+// Make sure the showPage function is available
+if (typeof window.showPage !== 'function') {
+  window.showPage = function(pageId) {
+    // Hide all pages
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => page.style.display = 'none');
+    
+    // Show selected page
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+      targetPage.style.display = 'block';
+    }
+  };
+}
+
+// Export the startMode function
 window.startMode = startMode;
