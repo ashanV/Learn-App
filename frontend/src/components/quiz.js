@@ -1,160 +1,142 @@
-class QuizManager {
-  constructor() {
-    this.questions = [];
-    this.currentQuestionIndex = 0;
-    this.score = 0;
-    this.selectedAnswers = [];
-    this.timeLimit = 30; 
-    this.timeRemaining = this.timeLimit;
-    this.timer = null;
-    this.isQuizActive = false;
-    this.startTime = null;
-    this.userAnswers = [];
+let activeTimer = null;
+export function stopQuizTimer() {
+  if (activeTimer) {
+    clearInterval(activeTimer);
+    activeTimer = null;
   }
+}
 
-  // Initializing the quiz
-  async init() {
+export function initializeQuiz() {
+  // --- Interface elements ---
+  const quizContainer = document.getElementById("quiz-container");
+  const questionContainer = document.getElementById("questionContainer");
+  const controls = document.querySelector(".controls");
+
+  // Header and Statistics
+  const questionNumberEl = document.getElementById("questionNumber");
+  const questionEl = document.getElementById("question");
+  const optionsEl = document.getElementById("options");
+  const feedbackEl = document.getElementById("feedback");
+
+  // Statistics
+  const questionCountEl = document.getElementById("questionCount");
+  const scoreEl = document.getElementById("score");
+  const timerEl = document.getElementById("timer");
+  const progressEl = document.getElementById("progress");
+
+  // Buttons
+  const nextBtn = document.getElementById("nextBtn");
+  const restartBtn = document.getElementById("restartBtn");
+
+  // --- State variables ---
+  let questions = [];
+  let currentQuestionIndex = 0;
+  let score = 0;
+  let timeLimit = 30;
+  let timeRemaining = timeLimit;
+  let isQuizActive = false;
+  let startTime = null;
+  let userAnswers = [];
+
+  // Initialization
+
+  async function init() {
     try {
-      await this.loadQuestions();
-      this.setupEventListeners();
-      this.startQuiz();
+      setupEventListeners();
+      await restartQuiz();
     } catch (error) {
-      console.error('Błąd inicjalizacji quizu:', error);
-      this.showError('Nie udało się załadować pytań quizu');
+      console.error("Błąd inicjalizacji quizu:", error);
+      showError(
+        "Nie udało się załadować pytań quizu. Spróbuj ponownie później."
+      );
     }
   }
 
-  // Load questions from server
-  async loadQuestions() {
+  // Quiz Logic
+
+  async function loadQuestions() {
+    // This function now ONLY takes questions
     try {
-      const selectedLanguage = localStorage.getItem('selectedLanguage') || 'en';
+      const selectedLanguage = localStorage.getItem("selectedLanguage") || "en";
       const questionsCount = 10;
-      
-      const response = await fetch(`http://localhost:5000/api/quiz/questions?lang=${selectedLanguage}&count=${questionsCount}`);
-      
+      const response = await fetch(
+        `http://localhost:5000/api/quiz/questions?lang=${selectedLanguage}&count=${questionsCount}`
+      );
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Błąd serwera: ${response.status}`);
       }
-      
       const data = await response.json();
-      this.questions = data.questions;
-      
-      if (this.questions.length === 0) {
-        throw new Error('Brak pytań dla wybranego języka');
+      if (!data.questions || data.questions.length === 0) {
+        throw new Error("Brak pytań dla wybranego języka.");
       }
+      questions = data.questions; // We update the question pool
     } catch (error) {
-      console.error('Błąd ładowania pytań:', error);
+      console.error("Błąd ładowania pytań:", error);
       throw error;
     }
   }
 
-  // Setting up event listeners
-  setupEventListeners() {
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('quiz-option') && this.isQuizActive) {
-        this.selectAnswer(e.target);
-      }
-    });
-
-    const nextBtn = document.getElementById('nextBtn');
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => this.nextQuestion());
+  // Starting the Quiz
+  function startQuiz() {
+    if (questions.length === 0) {
+      showError("Brak pytań do rozpoczęcia quizu.");
+      return;
     }
-
-    const restartBtn = document.querySelector('[onclick="restartQuiz()"]');
-    if (restartBtn) {
-      restartBtn.addEventListener('click', () => this.restartQuiz());
-    }
+    isQuizActive = true;
+    startTime = new Date();
+    showQuizInterface();
+    displayQuestion();
+    updateStats();
+    startTimer();
   }
 
-  // Start quiz
-  startQuiz() {
-    this.currentQuestionIndex = 0;
-    this.score = 0;
-    this.selectedAnswers = [];
-    this.userAnswers = [];
-    this.isQuizActive = true;
-    this.startTime = new Date();
-    
-    this.displayQuestion();
-    this.updateStats();
-    this.startTimer();
-  }
-
-  // View current question
-  displayQuestion() {
-    if (this.currentQuestionIndex >= this.questions.length) {
-      this.endQuiz();
+  // Displaying Questions
+  function displayQuestion() {
+    if (currentQuestionIndex >= questions.length) {
+      endQuiz();
       return;
     }
 
-    const question = this.questions[this.currentQuestionIndex];
-    
-    // Update interface
-    const questionNumberEl = document.getElementById('questionNumber');
-    const questionEl = document.getElementById('question');
-    const optionsEl = document.getElementById('options');
-    const feedbackEl = document.getElementById('feedback');
-    
-    if (questionNumberEl) {
-      questionNumberEl.textContent = `Pytanie ${this.currentQuestionIndex + 1}`;
-    }
-    
-    if (questionEl) {
-      questionEl.textContent = question.question;
-    }
-    
+    const question = questions[currentQuestionIndex];
+    if (questionNumberEl)
+      questionNumberEl.textContent = `Pytanie ${currentQuestionIndex + 1}`;
+    if (questionEl) questionEl.textContent = question.question;
+
     if (optionsEl) {
-      optionsEl.innerHTML = '';
+      optionsEl.innerHTML = "";
       question.options.forEach((option, index) => {
-        const optionEl = document.createElement('div');
-        optionEl.className = 'quiz-option';
-        optionEl.setAttribute('data-answer', index);
+        const optionEl = document.createElement("div");
+        optionEl.className = "quiz-option";
+        optionEl.setAttribute("data-answer", index);
         optionEl.textContent = option;
         optionsEl.appendChild(optionEl);
       });
     }
-    
+
     if (feedbackEl) {
-      feedbackEl.innerHTML = '';
-      feedbackEl.style.display = 'none';
+      feedbackEl.innerHTML = "";
+      feedbackEl.style.display = "none";
     }
 
-    // Reset timer
-    this.timeRemaining = this.timeLimit;
-    this.updateTimer();
+    if (nextBtn) nextBtn.disabled = true;
 
-    const nextBtn = document.getElementById('nextBtn');
-    if (nextBtn) {
-      nextBtn.disabled = true;
-    }
+    resetTimer();
+    updateTimerDisplay();
   }
 
-  // Select an answer
-  selectAnswer(selectedOption) {
-    if (!this.isQuizActive) return;
+  // Answer Selection
+  function selectAnswer(selectedOption) {
+    if (!isQuizActive) return;
 
-    // Delete previous selections
-    const options = document.querySelectorAll('.quiz-option');
-    options.forEach(option => {
-      option.classList.remove('selected', 'correct', 'incorrect');
-    });
+    isQuizActive = false;
+    stopQuizTimer();
 
-    // Mark selected option
-    selectedOption.classList.add('selected');
-    
-    const selectedIndex = parseInt(selectedOption.getAttribute('data-answer'));
-    const question = this.questions[this.currentQuestionIndex];
+    const selectedIndex = parseInt(selectedOption.dataset.answer, 10);
+    const question = questions[currentQuestionIndex];
     const isCorrect = selectedIndex === question.correctAnswer;
 
-    // Stop timer
-    this.stopTimer();
-
-    // Show feedback
-    this.showFeedback(isCorrect, selectedIndex, question.correctAnswer);
-
-    // Save the response
-    this.userAnswers.push({
+    userAnswers.push({
       questionId: question.id,
       questionText: question.question,
       selectedAnswer: selectedIndex,
@@ -162,402 +144,239 @@ class QuizManager {
       correctAnswer: question.correctAnswer,
       correctText: question.options[question.correctAnswer],
       isCorrect: isCorrect,
-      timeSpent: this.timeLimit - this.timeRemaining
+      timeSpent: timeLimit - timeRemaining,
     });
 
     if (isCorrect) {
-      this.score++;
-      selectedOption.classList.add('correct');
+      score++;
+      selectedOption.classList.add("correct");
     } else {
-      selectedOption.classList.add('incorrect');
-      options[question.correctAnswer].classList.add('correct');
+      selectedOption.classList.add("incorrect");
+      const correctOption = optionsEl.children[question.correctAnswer];
+      if (correctOption) correctOption.classList.add("correct");
     }
 
-    const nextBtn = document.getElementById('nextBtn');
-    if (nextBtn) {
-      nextBtn.disabled = false;
-    }
-
-    this.updateStats();
+    showFeedback(isCorrect, question.options[question.correctAnswer]);
+    updateStats();
+    if (nextBtn) nextBtn.disabled = false;
   }
 
-  // Show feedback
-  showFeedback(isCorrect, selectedIndex, correctIndex) {
-    const feedbackEl = document.getElementById('feedback');
-    if (!feedbackEl) return;
-
-    const question = this.questions[this.currentQuestionIndex];
-    
-    if (isCorrect) {
-      feedbackEl.innerHTML = `
-        <div class="feedback-correct">
-          <span class="feedback-icon">✅</span>
-          <span class="feedback-text">Brawo! To jest poprawna odpowiedź.</span>
-        </div>
-      `;
+  function nextQuestion() {
+    currentQuestionIndex++;
+    isQuizActive = true;
+    if (currentQuestionIndex < questions.length) {
+      displayQuestion();
+      updateStats();
+      startTimer();
     } else {
-      feedbackEl.innerHTML = `
-        <div class="feedback-incorrect">
-          <span class="feedback-icon">❌</span>
-          <span class="feedback-text">
-            Niepoprawnie. Poprawna odpowiedź to: <strong>${question.options[correctIndex]}</strong>
-          </span>
-        </div>
-      `;
-    }
-    
-    feedbackEl.style.display = 'block';
-  }
-
-  // Next question
-  nextQuestion() {
-    this.currentQuestionIndex++;
-    
-    if (this.currentQuestionIndex >= this.questions.length) {
-      this.endQuiz();
-    } else {
-      this.displayQuestion();
-      this.startTimer();
+      endQuiz();
     }
   }
 
-  // Start timer
-  startTimer() {
-    this.timeRemaining = this.timeLimit;
-    this.updateTimer();
-    
-    this.timer = setInterval(() => {
-      this.timeRemaining--;
-      this.updateTimer();
-      
-      if (this.timeRemaining <= 0) {
-        this.timeUp();
+  async function endQuiz() {
+    isQuizActive = false;
+    stopQuizTimer();
+    const endTime = new Date();
+    const totalTimeSpent = Math.round((endTime - startTime) / 1000);
+
+    await showResults(totalTimeSpent);
+  }
+
+  // Time
+
+  function startTimer() {
+    stopQuizTimer();
+    timeRemaining = timeLimit;
+    updateTimerDisplay();
+    activeTimer = setInterval(() => {
+      timeRemaining--;
+      updateTimerDisplay();
+      if (timeRemaining <= 0) {
+        timeUp();
       }
     }, 1000);
   }
 
-  // Stop timer
-  stopTimer() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+  function resetTimer() {
+    timeRemaining = timeLimit;
   }
 
-  // Update timer display
-  updateTimer() {
-    const timerEl = document.getElementById('timer');
-    if (timerEl) {
-      timerEl.textContent = `${this.timeRemaining}s`;
-      
-      // Change color when time runs out
-      if (this.timeRemaining <= 5) {
-        timerEl.classList.add('timer-warning');
-      } else {
-        timerEl.classList.remove('timer-warning');
-      }
-    }
-  }
+  function timeUp() {
+    stopQuizTimer();
+    isQuizActive = false;
 
- // Time is up
-  timeUp() {
-    this.stopTimer();
-    
-    const question = this.questions[this.currentQuestionIndex];
-    if (!question || typeof question.id === 'undefined') {
-      console.error('Błąd: Brak pytania lub właściwości id w timeUp');
-      this.nextQuestion();
-      return;
-    }
-
-    const correctAnswerIndex = question.correctAnswer;
-    
-    // Save no response
-    this.userAnswers.push({
+    const question = questions[currentQuestionIndex];
+    userAnswers.push({
       questionId: question.id,
       questionText: question.question,
       selectedAnswer: -1,
-      selectedText: 'Brak odpowiedzi',
-      correctAnswer: correctAnswerIndex,
-      correctText: question.options[correctAnswerIndex],
+      selectedText: "Brak odpowiedzi",
+      correctAnswer: question.correctAnswer,
+      correctText: question.options[question.correctAnswer],
       isCorrect: false,
-      timeSpent: this.timeLimit
+      timeSpent: timeLimit,
     });
 
-    // Show feedback about time
-    const feedbackEl = document.getElementById('feedback');
-    if (feedbackEl) {
+    showFeedback(false, question.options[question.correctAnswer], true);
+    const correctOption = optionsEl.children[question.correctAnswer];
+    if (correctOption) correctOption.classList.add("correct");
+
+    if (nextBtn) nextBtn.disabled = false;
+  }
+
+  // Interface and Results
+
+  function showQuizInterface() {
+    if (questionContainer) questionContainer.style.display = "block";
+    if (controls) controls.style.display = "flex";
+    clearPreviousResults();
+  }
+
+  function showFeedback(isCorrect, correctAnswerText, isTimeout = false) {
+    if (!feedbackEl) return;
+    if (isTimeout) {
       feedbackEl.innerHTML = `
         <div class="feedback-timeout">
           <span class="feedback-icon">⏰</span>
           <span class="feedback-text">
-            Czas się skończył! Poprawna odpowiedź to: <strong>${question.options[correctAnswerIndex]}</strong>
+            Czas się skończył! Poprawna odpowiedź to: <strong>${correctAnswerText}</strong>
           </span>
-        </div>
-      `;
-      feedbackEl.style.display = 'block';
+        </div>`;
+    } else if (isCorrect) {
+      feedbackEl.innerHTML = `
+        <div class="quiz-feedback-correct">
+          <span class="feedback-icon">✅</span>
+          <span class="feedback-text">Brawo! To jest poprawna odpowiedź.</span>
+        </div>`;
+    } else {
+      feedbackEl.innerHTML = `
+        <div class="quiz-feedback-incorrect">
+          <span class="feedback-icon">❌</span>
+          <span class="feedback-text">
+            Niepoprawnie. Poprawna odpowiedź to: <strong>${correctAnswerText}</strong>
+          </span>
+        </div>`;
     }
-
-    const options = document.querySelectorAll('.quiz-option');
-    if (options[correctAnswerIndex]) {
-      options[correctAnswerIndex].classList.add('correct');
-    }
-
-    const nextBtn = document.getElementById('nextBtn');
-    if (nextBtn) {
-      nextBtn.disabled = false;
-    }
-
-    setTimeout(() => {
-      this.nextQuestion();
-    }, 2000);
+    feedbackEl.style.display = "block";
   }
 
-  // Update statistics
-  updateStats() {
-   // Current question number
-    const questionCountEl = document.getElementById('questionCount');
-    if (questionCountEl) {
-      questionCountEl.textContent = `${this.currentQuestionIndex + 1}/${this.questions.length}`;
-    }
+  async function showResults(totalTimeSpent) {
+    clearPreviousResults();
+    if (questionContainer) questionContainer.style.display = "none";
+    if (controls) controls.style.display = "none";
 
-  // Points
-    const scoreEl = document.getElementById('score');
-    if (scoreEl) {
-      scoreEl.textContent = this.score;
-    }
+    const accuracy =
+      questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+    const resultsContainer = document.createElement("div");
+    resultsContainer.className = "quiz-results";
+    resultsContainer.innerHTML = `
+      <div class="results-header">
+        <h2>🎉 Quiz Zakończony!</h2>
+        <div class="final-score"><div class="score-circle">
+            <span class="score-percentage">${accuracy}%</span>
+            <span class="score-text">Dokładność</span>
+        </div></div>
+      </div>
+      <div class="results-stats">
+        <div class="result-stat"><span class="quiz-result-stat-label">Poprawne ✅</span><span class="quiz-result-stat-value">${score}/${
+      questions.length
+    }</span></div>
+        <div class="result-stat"><span class="quiz-result-stat-label">Czas ⌛️</span><span class="quiz-result-stat-value">${Math.floor(
+          totalTimeSpent / 60
+        )}:${(totalTimeSpent % 60).toString().padStart(2, "0")}</span></div>
+      </div>
+      <div class="results-actions">
+        <button class="quiz-btn quiz-btn-primary" id="tryAgainBtn">🔄 Spróbuj ponownie</button>
+        <button class="quiz-btn quiz-btn-secondary" onclick="returnToModes()">🏠 Powrót do trybów</button>
+      </div>`;
 
-    // Progress bar
-    const progressEl = document.getElementById('progress');
+    quizContainer.appendChild(resultsContainer);
+    document
+      .getElementById("tryAgainBtn")
+      .addEventListener("click", restartQuiz);
+  }
+
+  function updateStats() {
+    if (questionCountEl)
+      questionCountEl.textContent = `${currentQuestionIndex + 1}/${
+        questions.length
+      }`;
+    if (scoreEl) scoreEl.textContent = score;
     if (progressEl) {
-      const progressPercent = ((this.currentQuestionIndex + 1) / this.questions.length) * 100;
+      const progressPercent =
+        questions.length > 0
+          ? ((currentQuestionIndex + 1) / questions.length) * 100
+          : 0;
       progressEl.style.width = `${progressPercent}%`;
     }
   }
 
-  // End quiz
-  async endQuiz() {
-    this.isQuizActive = false;
-    this.stopTimer();
-    
-    const endTime = new Date();
-    const totalTimeSpent = Math.round((endTime - this.startTime) / 1000); // w sekundach
-    
-   // Show results
-    await this.showResults(totalTimeSpent);
-    
-    // Save results to server
-    await this.saveResults(totalTimeSpent);
-  }
-
-  // Show results
-  async showResults(totalTimeSpent) {
-    const accuracy = Math.round((this.score / this.questions.length) * 100);
-    
-    const questionContainer = document.getElementById('questionContainer');
-    const controls = document.querySelector('.controls');
-    
-    if (questionContainer) questionContainer.style.display = 'none';
-    if (controls) controls.style.display = 'none';
-
-   // Create and show results
-    const resultsContainer = document.createElement('div');
-    resultsContainer.className = 'quiz-results';
-    resultsContainer.innerHTML = `
-      <div class="results-header">
-        <h2>🎉 Quiz Zakończony!</h2>
-        <div class="final-score">
-          <div class="score-circle">
-            <span class="score-percentage">${accuracy}%</span>
-            <span class="score-text">Dokładność</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="results-stats">
-        <div class="result-stat">
-          <span class="stat-label">Poprawne odpowiedzi</span>
-          <span class="stat-value">${this.score}/${this.questions.length}</span>
-        </div>
-        <div class="result-stat">
-          <span class="stat-label">Czas całkowity</span>
-          <span class="stat-value">${Math.floor(totalTimeSpent / 60)}:${(totalTimeSpent % 60).toString().padStart(2, '0')}</span>
-        </div>
-        <div class="result-stat">
-          <span class="stat-label">Średni czas na pytanie</span>
-          <span class="stat-value">${Math.round(totalTimeSpent / this.questions.length)}s</span>
-        </div>
-      </div>
-
-      <div class="results-actions">
-        <button class="quiz-btn quiz-btn-primary" onclick="quizManager.restartQuiz()">
-          🔄 Spróbuj ponownie
-        </button>
-        <button class="quiz-btn quiz-btn-secondary" onclick="returnToModes()">
-          🏠 Powrót do trybów
-        </button>
-        <button class="quiz-btn quiz-btn-secondary" onclick="quizManager.showDetailedResults()">
-          📊 Szczegółowe wyniki
-        </button>
-      </div>
-    `;
-
-    const quizContainer = document.getElementById('quiz-container');
-    if (quizContainer) {
-      quizContainer.appendChild(resultsContainer);
-    }
-  }
-
-  // Show detailed results
-  showDetailedResults() {
-    const detailedContainer = document.createElement('div');
-    detailedContainer.className = 'detailed-results';
-    
-    let detailedHTML = `
-      <div class="detailed-header">
-        <button class="back-btn" onclick="this.parentElement.parentElement.remove()">← Powrót</button>
-        <h3>📋 Szczegółowe Wyniki</h3>
-      </div>
-      <div class="detailed-questions">
-    `;
-
-    this.userAnswers.forEach((answer, index) => {
-      const statusClass = answer.isCorrect ? 'correct' : 'incorrect';
-      const statusIcon = answer.isCorrect ? '✅' : '❌';
-      
-      detailedHTML += `
-        <div class="detailed-question ${statusClass}">
-          <div class="question-header">
-            <span class="question-num">Pytanie ${index + 1}</span>
-            <span class="question-status">${statusIcon}</span>
-          </div>
-          <div class="question-text">${answer.questionText}</div>
-          <div class="answer-comparison">
-            <div class="user-answer">
-              <strong>Twoja odpowiedź:</strong> ${answer.selectedText}
-            </div>
-            ${!answer.isCorrect ? `
-              <div class="correct-answer">
-                <strong>Poprawna odpowiedź:</strong> ${answer.correctText}
-              </div>
-            ` : ''}
-          </div>
-          <div class="time-spent">Czas: ${answer.timeSpent}s</div>
-        </div>
-      `;
-    });
-
-    detailedHTML += `
-      </div>
-    `;
-
-    detailedContainer.innerHTML = detailedHTML;
-    
-    const quizContainer = document.getElementById('quiz-container');
-    if (quizContainer) {
-      quizContainer.appendChild(detailedContainer);
-    }
-  }
-
-  // Save results to server
-  async saveResults(totalTimeSpent) {
-    try {
-      const firebaseUid = localStorage.getItem('firebaseUid');
-      if (!firebaseUid) {
-        console.warn('Brak firebaseUid - nie można zapisać wyników');
-        return;
+  function updateTimerDisplay() {
+    if (timerEl) {
+      timerEl.textContent = `${timeRemaining}s`;
+      if (timeRemaining <= 5) {
+        timerEl.classList.add("timer-warning");
+      } else {
+        timerEl.classList.remove("timer-warning");
       }
-
-      const resultsData = {
-        firebaseUid: firebaseUid,
-        results: this.userAnswers,
-        totalQuestions: this.questions.length,
-        correctAnswers: this.score,
-        timeSpent: totalTimeSpent
-      };
-
-      const response = await fetch('/api/quiz/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(resultsData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Wyniki zapisane pomyślnie:', data);
-      
-    } catch (error) {
-      console.error('Błąd zapisywania wyników:', error);
     }
   }
 
-  // Restart quiz
-  restartQuiz() {
-    const resultsContainers = document.querySelectorAll('.quiz-results, .detailed-results');
-    resultsContainers.forEach(container => container.remove());
-    
-    const questionContainer = document.getElementById('questionContainer');
-    const controls = document.querySelector('.controls');
-    
-    if (questionContainer) questionContainer.style.display = 'block';
-    if (controls) controls.style.display = 'flex';
-
-    this.init();
-  }
-
-  // Show error
-  showError(message) {
-    const errorContainer = document.createElement('div');
-    errorContainer.className = 'quiz-error';
-    errorContainer.innerHTML = `
-      <div class="error-content">
+  function showError(message) {
+    quizContainer.innerHTML = `
+      <div class="quiz-error">
         <h3>❌ Błąd</h3>
         <p>${message}</p>
         <button class="quiz-btn" onclick="returnToModes()">Powrót do trybów</button>
-      </div>
-    `;
+      </div>`;
+  }
 
-    const quizContainer = document.getElementById('quiz-container');
-    if (quizContainer) {
-      quizContainer.innerHTML = '';
-      quizContainer.appendChild(errorContainer);
+  // Auxiliary
+
+  async function restartQuiz() {
+    stopQuizTimer();
+    isQuizActive = false;
+
+    try {
+      await loadQuestions();
+
+      resetQuizState();
+      clearPreviousResults();
+
+      startQuiz();
+    } catch (error) {
+      console.error("Nie udało się zrestartować quizu:", error);
+      showError(
+        "Nie udało się załadować nowych pytań. Sprawdź połączenie i spróbuj ponownie."
+      );
     }
   }
+
+  function resetQuizState() {
+    currentQuestionIndex = 0;
+    score = 0;
+    userAnswers = [];
+    timeRemaining = timeLimit;
+  }
+
+  function clearPreviousResults() {
+    const resultsContainers = quizContainer.querySelectorAll(
+      ".quiz-results, .detailed-results, .quiz-error"
+    );
+    resultsContainers.forEach((el) => el.remove());
+  }
+
+  function setupEventListeners() {
+    if (optionsEl) {
+      optionsEl.addEventListener("click", (e) => {
+        if (e.target.classList.contains("quiz-option") && isQuizActive) {
+          selectAnswer(e.target);
+        }
+      });
+    }
+    if (nextBtn) nextBtn.addEventListener("click", nextQuestion);
+    if (restartBtn) restartBtn.addEventListener("click", restartQuiz);
+  }
+
+  init();
 }
-
-// Global quiz instance
-let quizManager = null;
-
-// Global functions for compatibility with existing code
-window.restartQuiz = function() {
-  if (quizManager) {
-    quizManager.restartQuiz();
-  }
-};
-
-window.nextQuestion = function() {
-  if (quizManager) {
-    quizManager.nextQuestion();
-  }
-};
-
-// Initialize the quiz when the interface is ready
-document.addEventListener('DOMContentLoaded', function() {
-  // Check if we are in quiz mode
-  const quizContainer = document.getElementById('quiz-container');
-  if (quizContainer && quizContainer.style.display !== 'none') {
-    initializeQuiz();
-  }
-});
-
-window.initializeQuiz = function() {
-  quizManager = new QuizManager();
-  quizManager.init();
-};
-
-export { QuizManager };

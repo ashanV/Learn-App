@@ -1,5 +1,5 @@
 import { initializeFlashcard } from "./components/flashcard.js";
-import { QuizManager } from "./components/quiz.js"; // Fixed import path
+import { initializeQuiz, stopQuizTimer } from "./components/quiz.js";
 
 // Main function to start modes
 export function startMode(modeType) {
@@ -164,7 +164,7 @@ function createFlashcardInterface() {
   return container;
 }
 
-// Quiz Mode - Fixed implementation
+// Quiz Mode
 function startQuizMode() {
   document.getElementById("modesPage").style.display = "block";
 
@@ -174,25 +174,17 @@ function startQuizMode() {
   if (modesGrid) modesGrid.style.display = "none";
   if (pageHeader) pageHeader.style.display = "none";
 
-  // Create or show quiz container
   let quizContainer = document.getElementById("quiz-container");
-  if (!quizContainer) {
-    quizContainer = createQuizInterface();
-    document.getElementById("modesPage").appendChild(quizContainer);
+  if (quizContainer) {
+    quizContainer.remove(); // Zawsze usuwamy stary kontener, by zapewnić czysty stan
   }
 
+  quizContainer = createQuizInterface();
+  document.getElementById("modesPage").appendChild(quizContainer);
   quizContainer.style.display = "block";
 
-  // Initialize Quiz Manager properly
-  if (window.quizManager) {
-    window.quizManager = null; // Clear existing instance
-  }
-  
-  // Create new instance and initialize
-  window.quizManager = new QuizManager();
-  window.quizManager.init().catch(error => {
-    console.error('Błąd inicjalizacji quizu:', error);
-  });
+  // Inicjalizujemy quiz, który sam zarządza swoim stanem
+  initializeQuiz();
 }
 
 // Function to create quiz interface
@@ -245,8 +237,8 @@ function createQuizInterface() {
         </div>
 
         <div class="controls">
-            <button class="quiz-btn" id="nextBtn" onclick="nextQuestion()" disabled>Następne pytanie</button>
-            <button class="quiz-btn" onclick="restartQuiz()">Restart</button>
+            <button class="quiz-btn" id="nextBtn" disabled>Następne pytanie</button>
+            <button class="quiz-btn" id="restartBtn">Restart</button>
         </div>
     </div>
     `;
@@ -323,14 +315,20 @@ function showModeInterface(modeType, title, content) {
 
 // Return to modes function
 window.returnToModes = function () {
-  // Stop quiz if it's running
-  if (window.quizManager && window.quizManager.isQuizActive) {
-    window.quizManager.stopTimer();
-    window.quizManager.isQuizActive = false;
+  if (window.quizManager) {
+    if (window.quizManager.stopTimer) {
+      window.quizManager.stopTimer();
+    }
+    if (window.quizManager.cleanUpQuiz) {
+      window.quizManager.cleanUpQuiz();
+    }
+    window.quizManager = null;
   }
 
-  // Hide all mode containers
-  hideModeContainers();
+  const containersToRemove = document.querySelectorAll(
+    "#flashcard-container, #quiz-container, .mode-interface"
+  );
+  containersToRemove.forEach((container) => container.remove());
 
   const modesGrid = document.querySelector(".modes-grid");
   const pageHeader = document.querySelector("#modesPage .page-header");
@@ -387,16 +385,16 @@ window.reviewDifficultWords = function () {
 };
 
 // Make sure the showPage function is available
-if (typeof window.showPage !== 'function') {
-  window.showPage = function(pageId) {
+if (typeof window.showPage !== "function") {
+  window.showPage = function (pageId) {
     // Hide all pages
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => page.style.display = 'none');
-    
+    const pages = document.querySelectorAll(".page");
+    pages.forEach((page) => (page.style.display = "none"));
+
     // Show selected page
     const targetPage = document.getElementById(pageId);
     if (targetPage) {
-      targetPage.style.display = 'block';
+      targetPage.style.display = "block";
     }
   };
 }
