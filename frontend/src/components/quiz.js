@@ -28,6 +28,12 @@ export function initializeQuiz() {
   const nextBtn = document.getElementById("nextBtn");
   const restartBtn = document.getElementById("restartBtn");
 
+  // Sounds
+  const correctSound = new Audio("/frontend/public/assets/sound/correct.mp3");
+  const incorrectSound = new Audio(
+    "/frontend/public/assets/sound/incorrect.mp3"
+  );
+
   // --- State variables ---
   let questions = [];
   let currentQuestionIndex = 0;
@@ -150,10 +156,26 @@ export function initializeQuiz() {
     if (isCorrect) {
       score++;
       selectedOption.classList.add("correct");
+      correctSound.play();
     } else {
       selectedOption.classList.add("incorrect");
       const correctOption = optionsEl.children[question.correctAnswer];
+      incorrectSound.play();
       if (correctOption) correctOption.classList.add("correct");
+      for (let i = 0; i < optionsEl.children.length; i++) {
+        if (i !== question.correctAnswer) {
+          optionsEl.children[i].classList.add("incorrect");
+        }
+      }
+      selectedOption.classList.add("incorrect");
+      selectedOption.classList.remove("correct");
+      if (correctOption) {
+        correctOption.classList.add("correct");
+      }
+      selectedOption.classList.remove("incorrect");
+      selectedOption.classList.remove("correct");
+      selectedOption.classList.add("incorrect");
+      incorrectSound.play();
     }
 
     showFeedback(isCorrect, question.options[question.correctAnswer]);
