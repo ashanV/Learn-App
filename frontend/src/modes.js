@@ -45,7 +45,7 @@ function hideAllPages() {
 // function to hide all mode containers
 function hideModeContainers() {
   const modeContainers = document.querySelectorAll(
-    "#flashcard-container, #quiz-container, .mode-interface, .flashcard-card, .quiz-card"
+    "#flashcard-container, #quiz-container, #writing-mode-container, .mode-interface, .flashcard-card, .quiz-card"
   );
   modeContainers.forEach((container) => {
     container.style.display = "none";
@@ -248,21 +248,155 @@ function createQuizInterface() {
 // Writing mode (placeholder for now)
 function startWritingMode() {
   document.getElementById("modesPage").style.display = "block";
-  showModeInterface(
-    "writing",
-    "✍️ Pisanie z Pamięci",
-    createWritingInterface()
-  );
+
+  const modesGrid = document.querySelector(".modes-grid");
+  const pageHeader = document.querySelector("#modesPage .page-header");
+
+  if (modesGrid) modesGrid.style.display = "none";
+  if (pageHeader) pageHeader.style.display = "none";
+
+  let writingContainer = document.getElementById("quiz-container");
+  if (writingContainer) {
+    writingContainer.remove(); // Zawsze usuwamy stary kontener, by zapewnić czysty stan
+  }
+
+  writingContainer = createWritingInterface();
+  document.getElementById("modesPage").appendChild(writingContainer);
+  writingContainer.style.display = "block";
 }
 
 function createWritingInterface() {
-  return `
-        <div class="writing-container">
-            <h2>Tryb pisania będzie dostępny wkrótce!</h2>
-            <p>Zaawansowany tryb pisania z pamięci jest w przygotowaniu.</p>
-            <button class="btn btn-primary" onclick="returnToModes()">Powrót do trybów</button>
+  const writingContainer = document.createElement("div");
+  writingContainer.id = "writing-mode-container";
+  writingContainer.className = "writing-card";
+
+  writingContainer.innerHTML = `<div class="writing-container">
+  <div class="mode-header">
+            <button class="back-button" onclick="returnToModes()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Powrót do trybów
+            </button>
+            <h1>✍️ Pisanie z Pamięci</h1>
+            <p class="quiz-subtitle">Wpisz tłumaczenie z pamięci. Najskuteczniejszy sposób na zapamiętanie słów.</p>
         </div>
-    `;
+
+        <div class="writing-mode-selector">
+            <button class="writing-mode-btn active" data-mode="standard">Standardowy</button>
+            <button class="writing-mode-btn" data-mode="timed">Czasowy</button>
+            <button class="writing-mode-btn" data-mode="hardcore">Hardcore</button>
+        </div>
+
+        <div class="writing-difficulty-bar">
+            <div class="writing-difficulty-level">Poziom trudności: <span id="currentLevel">Początkujący</span></div>
+            <div class="writing-progress-indicators">
+                <div class="writing-progress-dot filled"></div>
+                <div class="writing-progress-dot filled"></div>
+                <div class="writing-progress-dot"></div>
+                <div class="writing-progress-dot"></div>
+                <div class="writing-progress-dot"></div>
+            </div>
+        </div>
+
+        <div class="writing-learning-path">
+            <div class="writing-path-progress">
+                <div class="writing-mastery-level">Stopień opanowania: <span id="masteryLevel">0%</span></div>
+                <div class="writing-mastery-level">Słowa do powtórki: <span id="reviewWords">0</span></div>
+            </div>
+            <div style="background: rgba(255,255,255,0.5); height: 8px; border-radius: 10px; overflow: hidden;">
+                <div id="masteryBar" style="background: linear-gradient(90deg, #ba68c8, #9c27b0); height: 100%; width: 0%; border-radius: 10px; transition: width 0.5s ease;"></div>
+            </div>
+        </div>
+
+        <div class="writing-time-pressure" id="timePressure">
+            <div class="writing-timer" id="timer">30</div>
+            <div class="writing-timer-label">Pozostały czas</div>
+        </div>
+
+        <div class="writing-word-section">
+            <div class="writing-word-context">
+                <div class="writing-context-label">Kontekst w zdaniu</div>
+                <div class="writing-context-sentence" id="contextSentence"></div>
+            </div>
+
+            <div class="writing-word-display">
+                <div class="writing-source-word" id="sourceWord"></div>
+                <div class="writing-pronunciation" id="pronunciation"></div>
+                <div class="writing-word-details">
+                    <div class="writing-word-type" id="wordType"></div>
+                    <div class="writing-word-level" id="wordLevel"></div>
+                    <div class="writing-word-frequency" id="wordFrequency"></div>
+                </div>
+            </div>
+
+            <div class="writing-area" id="writingArea">
+                <div class="writing-label">Wpisz tłumaczenie po polsku:</div>
+                <textarea 
+                    id="translationInput" 
+                    class="translation-input" 
+                    placeholder="Zacznij pisać tłumaczenie..."
+                    rows="2"
+                    autocomplete="off"
+                    spellcheck="false"
+                ></textarea>
+                <div class="writing-character-counter">
+                    <span id="charCount">0</span> / <span id="expectedLength">0</span> znaków
+                </div>
+            </div>
+
+            <div class="writing-smart-feedback">
+                <div class="writing-typo-indicator" id="typoIndicator">
+                    <div class="writing-feedback-label">Możliwy błąd ortograficzny</div>
+                    <div class="writing-feedback-content" id="typoText"></div>
+                </div>
+                
+                <div class="writing-similarity-meter" id="similarityMeter">
+                    <div class="writing-similarity-bar">
+                        <div class="writing-similarity-fill" id="similarityFill" style="width: 0%"></div>
+                    </div>
+                    <div class="writing-similarity-text" id="similarityText">Podobieństwo: 0%</div>
+                </div>
+            </div>
+
+            <div class="writing-hint-system" id="hintSection">
+                </div>
+
+            <div class="writing-buttons">
+                <button class="writing-btn writing-btn-primary" id="checkBtn">Sprawdź odpowiedź</button>
+                <button class="writing-btn writing-btn-hint" id="hintBtn">Podpowiedź</button>
+                <button class="writing-btn writing-btn-skip" id="skipBtn">Pomiń słowo</button>
+                <button class="writing-btn writing-btn-secondary" id="nextBtn" style="display: none;">Następne słowo</button>
+            </div>
+
+            <div class="writing-feedback" id="feedback"></div>
+        </div>
+
+        <div class="writing-streak-indicator">
+            <div class="writing-streak-flame">🔥</div>
+            <div class="writing-streak-text">Seria poprawnych odpowiedzi: <span id="streakCount">0</span></div>
+        </div>
+
+        <div class="writing-stats-panel">
+            <div class="writing-stat-card">
+                <span class="writing-stat-number" id="correctCount">0</span>
+                <span class="writing-stat-label">Poprawne</span>
+            </div>
+            <div class="writing-stat-card">
+                <span class="writing-stat-number" id="totalCount">0</span>
+                <span class="writing-stat-label">Razem</span>
+            </div>
+            <div class="writing-stat-card">
+                <span class="writing-stat-number" id="accuracy">0%</span>
+                <span class="writing-stat-label">Skuteczność</span>
+            </div>
+            <div class="writing-stat-card">
+                <span class="writing-stat-number" id="avgTime">0s</span>
+                <span class="writing-stat-label">Śr. czas</span>
+            </div>
+        </div>
+    </div>`;
+  return writingContainer;
 }
 
 // Speed ​​mode (placeholder for now)
