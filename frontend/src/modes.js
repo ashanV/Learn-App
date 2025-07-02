@@ -1,5 +1,6 @@
 import { initializeFlashcard } from "./components/flashcard.js";
 import { initializeQuiz, stopQuizTimer } from "./components/quiz.js";
+import { initializeWriting } from "./components/writing.js";
 
 // Main function to start modes
 export function startMode(modeType) {
@@ -176,14 +177,14 @@ function startQuizMode() {
 
   let quizContainer = document.getElementById("quiz-container");
   if (quizContainer) {
-    quizContainer.remove(); // Zawsze usuwamy stary kontener, by zapewnić czysty stan
+    quizContainer.remove(); 
   }
 
   quizContainer = createQuizInterface();
   document.getElementById("modesPage").appendChild(quizContainer);
   quizContainer.style.display = "block";
 
-  // Inicjalizujemy quiz, który sam zarządza swoim stanem
+  // We initialize a quiz that manages its own state
   initializeQuiz();
 }
 
@@ -245,7 +246,7 @@ function createQuizInterface() {
   return quizContainer;
 }
 
-// Writing mode (placeholder for now)
+// Writing mode 
 function startWritingMode() {
   document.getElementById("modesPage").style.display = "block";
 
@@ -257,12 +258,15 @@ function startWritingMode() {
 
   let writingContainer = document.getElementById("quiz-container");
   if (writingContainer) {
-    writingContainer.remove(); // Zawsze usuwamy stary kontener, by zapewnić czysty stan
+    writingContainer.remove(); 
   }
 
   writingContainer = createWritingInterface();
   document.getElementById("modesPage").appendChild(writingContainer);
   writingContainer.style.display = "block";
+
+  // Initialize the writing mode
+  initializeWriting();
 }
 
 function createWritingInterface() {
