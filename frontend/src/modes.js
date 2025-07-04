@@ -177,7 +177,7 @@ function startQuizMode() {
 
   let quizContainer = document.getElementById("quiz-container");
   if (quizContainer) {
-    quizContainer.remove(); 
+    quizContainer.remove();
   }
 
   quizContainer = createQuizInterface();
@@ -246,7 +246,7 @@ function createQuizInterface() {
   return quizContainer;
 }
 
-// Writing mode 
+// Writing mode
 function startWritingMode() {
   document.getElementById("modesPage").style.display = "block";
 
@@ -258,7 +258,7 @@ function startWritingMode() {
 
   let writingContainer = document.getElementById("quiz-container");
   if (writingContainer) {
-    writingContainer.remove(); 
+    writingContainer.remove();
   }
 
   writingContainer = createWritingInterface();
@@ -309,7 +309,7 @@ function createWritingInterface() {
                 <div class="writing-mastery-level">Słowa do powtórki: <span id="reviewWords">0</span></div>
             </div>
             <div style="background: rgba(255,255,255,0.5); height: 8px; border-radius: 10px; overflow: hidden;">
-                <div id="masteryBar" style="background: linear-gradient(90deg, #ba68c8, #9c27b0); height: 100%; width: 0%; border-radius: 10px; transition: width 0.5s ease;"></div>
+                <div id="masteryBar" style="background: linear-gradient(135deg, var(--vervly-primary-medium),var(--vervly-primary-light));; height: 100%; width: 0%; border-radius: 10px; transition: width 0.5s ease;"></div>
             </div>
         </div>
 
@@ -389,10 +389,6 @@ function createWritingInterface() {
             <div class="writing-stat-card">
                 <span class="writing-stat-number" id="totalCount">0</span>
                 <span class="writing-stat-label">Razem</span>
-            </div>
-            <div class="writing-stat-card">
-                <span class="writing-stat-number" id="accuracy">0%</span>
-                <span class="writing-stat-label">Skuteczność</span>
             </div>
             <div class="writing-stat-card">
                 <span class="writing-stat-number" id="avgTime">0s</span>

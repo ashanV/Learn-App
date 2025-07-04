@@ -1,6 +1,7 @@
 export function initializeWriting() {
- 
-
+  // --- CONFIGURATION ---
+  const API_BASE_URL = 'http://localhost:5000/api/writing';
+  
   // --- ELEMENTS DOM ---
   const dom = {
     sourceWord: document.getElementById("sourceWord"),
@@ -35,6 +36,8 @@ export function initializeWriting() {
     masteryBar: document.getElementById("masteryBar"),
     masteryLevel: document.getElementById("masteryLevel"),
     reviewWords: document.getElementById("reviewWords"),
+    loadingIndicator: document.getElementById("loadingIndicator"),
+    errorMessage: document.getElementById("errorMessage"),
   };
 
   // --- GAME STATE ---
@@ -47,46 +50,213 @@ export function initializeWriting() {
     timeLeft: 30,
     startTime: 0,
     wordDataWithProgress: [],
+    isLoading: false,
+    selectedLevel: null,
+    selectedDifficulty: null,
   };
 
-  // --- MAIN LOGIC ---
+  // --- API FUNCTIONS ---
+  async function fetchWords(level = null, difficulty = null, limit = 20) {
+    try {
+      state.isLoading = true;
+      showLoading(true);
+      
+      const params = new URLSearchParams();
+      if (level) params.append('level', level);
+      if (difficulty) params.append('difficulty', difficulty);
+      if (limit) params.append('limit', limit);
+      
+      const response = await fetch(`${API_BASE_URL}/words?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch words');
+      }
+      
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching words:', error);
+      showError('Błąd podczas pobierania słów. Spróbuj ponownie.');
+      return [];
+    } finally {
+      state.isLoading = false;
+      showLoading(false);
+    }
+  }
 
-  function init() {
-    if (!dom.checkBtn) {
+  async function fetchRandomWord(level = null, difficulty = null) {
+    try {
+      const params = new URLSearchParams();
+      if (level) params.append('level', level);
+      if (difficulty) params.append('difficulty', difficulty);
+      
+      const response = await fetch(`${API_BASE_URL}/words/random?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch random word');
+      }
+      
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching random word:', error);
+      return null;
+    }
+  }
+
+  async function checkAnswerWithBackend(wordId, userAnswer) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/check-answer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          wordId: wordId,
+          userAnswer: userAnswer
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to check answer');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error checking answer:', error);
+      return null;
+    }
+  }
+
+  async function fetchStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/stats`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch stats');
+      }
+      
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      return null;
+    }
+  }
+
+  // --- MAIN LOGIC ---
+  async function init() {
+    console.log('Initializing writing module...');
+    
+    // Check if required DOM elements exist
+    const requiredElements = ['checkBtn', 'translationInput', 'sourceWord', 'feedback'];
+    const missingElements = requiredElements.filter(id => !dom[id]);
+    
+    if (missingElements.length > 0) {
       console.error(
-        "Błąd inicjalizacji: Nie znaleziono kluczowych elementów DOM. Upewnij się, że skrypt jest uruchamiany po załadowaniu HTML (np. wewnątrz 'DOMContentLoaded')."
+        `Błąd inicjalizacji: Nie znaleziono elementów DOM: ${missingElements.join(', ')}. 
+         Upewnij się, że HTML zawiera wszystkie wymagane elementy.`
       );
+      showError(`Błąd inicjalizacji: Brakuje elementów HTML: ${missingElements.join(', ')}`);
       return;
     }
 
-    state.wordDataWithProgress = wordsData.map((word) => ({
-      ...word,
+    console.log('DOM elements found, fetching words...');
+    
+    // Load initial words from backend
+    const words = await fetchWords();
+    
+    if (words.length === 0) {
+      console.error('No words fetched from backend');
+      showError('Nie udało się załadować słów. Sprawdź połączenie z serwerem.');
+      return;
+    }
+
+    console.log(`Loaded ${words.length} words from backend`);
+
+    // Transform backend data to match frontend structure
+    state.wordDataWithProgress = words.map((word) => ({
+      _id: word._id,
+      word: word.word,
+      pronunciation: word.pronunciation || '',
+      context: word.context || '',
+      type: word.type || '',
+      level: word.level || '',
+      frequency: word.frequency || '',
+      translations: word.translations || [],
+      hints: word.hints || [],
+      difficulty: word.difficulty || '',
       mastery: 0,
       lastAnswerCorrect: true,
     }));
+
+    console.log('Words transformed, adding event listeners...');
     addEventListeners();
-    loadNextWord();
+    
+    console.log('Loading first word...');
+    await loadNextWord();
   }
 
-
   function addEventListeners() {
-    dom.checkBtn.addEventListener("click", checkAnswer);
-    dom.nextBtn.addEventListener("click", loadNextWord);
-    dom.hintBtn.addEventListener("click", showHint);
-    dom.skipBtn.addEventListener("click", skipWord);
-    dom.translationInput.addEventListener("input", updateInputFeedback);
-    dom.translationInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        dom.checkBtn.click();
-      }
-    });
-    dom.translationInput.addEventListener("focus", () =>
-      dom.writingArea.classList.add("focused")
-    );
-    dom.translationInput.addEventListener("blur", () =>
-      dom.writingArea.classList.remove("focused")
-    );
+    // Add null checks for each element
+    if (dom.checkBtn) {
+      dom.checkBtn.addEventListener("click", checkAnswer);
+    }
+    
+    if (dom.nextBtn) {
+      dom.nextBtn.addEventListener("click", loadNextWord);
+    }
+    
+    if (dom.hintBtn) {
+      dom.hintBtn.addEventListener("click", showHint);
+    }
+    
+    if (dom.skipBtn) {
+      dom.skipBtn.addEventListener("click", skipWord);
+    }
+    
+    if (dom.translationInput) {
+      dom.translationInput.addEventListener("input", updateInputFeedback);
+      dom.translationInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          if (dom.checkBtn) {
+            dom.checkBtn.click();
+          }
+        }
+      });
+      dom.translationInput.addEventListener("focus", () => {
+        if (dom.writingArea) {
+          dom.writingArea.classList.add("focused");
+        }
+      });
+      dom.translationInput.addEventListener("blur", () => {
+        if (dom.writingArea) {
+          dom.writingArea.classList.remove("focused");
+        }
+      });
+    }
 
     if (dom.modeSelector) {
       dom.modeSelector.addEventListener("click", (e) => {
@@ -97,70 +267,138 @@ export function initializeWriting() {
     }
   }
 
-
-  function loadNextWord() {
+  async function loadNextWord() {
+    console.log('Loading next word...');
+    
     if (state.wordDataWithProgress.length === 0) {
-      showFinalScore();
-      return;
+      console.log('No words available, fetching more...');
+      // Try to fetch more words if we run out
+      const newWords = await fetchWords(state.selectedLevel, state.selectedDifficulty);
+      
+      if (newWords.length === 0) {
+        console.log('No more words available, showing final score');
+        showFinalScore();
+        return;
+      }
+      
+      // Add new words to the existing array
+      const transformedWords = newWords.map((word) => ({
+        _id: word._id,
+        word: word.word,
+        pronunciation: word.pronunciation || '',
+        context: word.context || '',
+        type: word.type || '',
+        level: word.level || '',
+        frequency: word.frequency || '',
+        translations: word.translations || [],
+        hints: word.hints || [],
+        difficulty: word.difficulty || '',
+        mastery: 0,
+        lastAnswerCorrect: true,
+      }));
+      
+      state.wordDataWithProgress = [...state.wordDataWithProgress, ...transformedWords];
     }
 
+    // Sort by mastery to prioritize difficult words
     state.wordDataWithProgress.sort((a, b) => a.mastery - b.mastery);
     state.currentWord = state.wordDataWithProgress[0];
 
+    console.log('Current word:', state.currentWord);
+
     const word = state.currentWord;
-    dom.sourceWord.textContent = word.word;
-    dom.pronunciation.textContent = word.pronunciation;
-    dom.contextSentence.innerHTML = word.context;
-    dom.wordType.textContent = word.type;
-    dom.wordLevel.textContent = word.level;
-    dom.wordFrequency.textContent = word.frequency;
+    
+    // Update DOM elements with null checks
+    if (dom.sourceWord) dom.sourceWord.textContent = word.word;
+    if (dom.pronunciation) dom.pronunciation.textContent = word.pronunciation;
+    if (dom.contextSentence) dom.contextSentence.innerHTML = word.context;
+    if (dom.wordType) dom.wordType.textContent = word.type;
+    if (dom.wordLevel) dom.wordLevel.textContent = word.level;
+    if (dom.wordFrequency) dom.wordFrequency.textContent = word.frequency;
 
     resetUIForNewWord();
     updateStatsUI();
 
     if (state.mode === "timed") startTimer();
     state.startTime = Date.now();
+    
+    console.log('Word loaded successfully');
   }
 
-    // --- ANSWER CHECKING AND FEEDBACK ---
-  function checkAnswer() {
+  // --- ANSWER CHECKING AND FEEDBACK ---
+  async function checkAnswer() {
+    console.log('Checking answer...');
+    
     clearInterval(state.timerInterval);
-    const userInput = dom.translationInput.value.trim().toLowerCase();
-    if (userInput.length === 0) return;
-
-    const correctAnswers = state.currentWord.translations.map((t) =>
-      t.toLowerCase()
-    );
+    
+    if (!dom.translationInput) {
+      console.error('Translation input not found');
+      return;
+    }
+    
+    const userInput = dom.translationInput.value.trim();
+    if (userInput.length === 0) {
+      console.log('Empty input, skipping check');
+      return;
+    }
 
     state.stats.total++;
     state.stats.totalTime += (Date.now() - state.startTime) / 1000;
     state.stats.answersCount++;
 
-    if (correctAnswers.includes(userInput)) {
-      state.stats.correct++;
-      state.stats.streak++;
-      state.currentWord.mastery = Math.min(100, state.currentWord.mastery + 25);
-      showFeedback(true, `Doskonale!`);
-    } else {
-      state.stats.streak = 0;
-      state.currentWord.mastery = Math.max(0, state.currentWord.mastery - 20);
-      const similarity = getHighestSimilarity(userInput, correctAnswers);
-      if (similarity > 0.7) {
-        showFeedback(
-          "partial",
-          `Prawie dobrze! Sprawdź pisownię.`,
-          correctAnswers
-        );
+    console.log('User input:', userInput);
+    console.log('Checking with backend...');
+
+    // Use backend to check answer
+    const result = await checkAnswerWithBackend(state.currentWord._id, userInput);
+    
+    if (result) {
+      console.log('Backend result:', result);
+      // Use backend result
+      if (result.correct) {
+        state.stats.correct++;
+        state.stats.streak++;
+        state.currentWord.mastery = Math.min(100, state.currentWord.mastery + 25);
+        showFeedback(true, result.feedback);
       } else {
-        showFeedback(false, `Niestety, to nie to.`, correctAnswers);
+        state.stats.streak = 0;
+        state.currentWord.mastery = Math.max(0, state.currentWord.mastery - 20);
+        if (result.similarity > 70) {
+          showFeedback("partial", result.feedback, result.correctAnswers);
+        } else {
+          showFeedback(false, result.feedback, result.correctAnswers);
+        }
+      }
+    } else {
+      console.log('Backend check failed, using fallback');
+      // Fallback to frontend checking if backend fails
+      const correctAnswers = state.currentWord.translations.map((t) => t.toLowerCase());
+      const userInputLower = userInput.toLowerCase();
+      
+      if (correctAnswers.includes(userInputLower)) {
+        state.stats.correct++;
+        state.stats.streak++;
+        state.currentWord.mastery = Math.min(100, state.currentWord.mastery + 25);
+        showFeedback(true, `Doskonale!`);
+      } else {
+        state.stats.streak = 0;
+        state.currentWord.mastery = Math.max(0, state.currentWord.mastery - 20);
+        const similarity = getHighestSimilarity(userInputLower, correctAnswers);
+        if (similarity > 0.7) {
+          showFeedback("partial", `Prawie dobrze! Sprawdź pisownię.`, state.currentWord.translations);
+        } else {
+          showFeedback(false, `Niestety, to nie to.`, state.currentWord.translations);
+        }
       }
     }
+    
     updateUIafterAnswer();
     updateStatsUI();
   }
 
-    // --- SKIP AND HINT FUNCTIONS ---
+  // --- SKIP AND HINT FUNCTIONS ---
   function skipWord() {
+    console.log('Skipping word...');
     clearInterval(state.timerInterval);
     state.stats.total++;
     state.stats.streak = 0;
@@ -171,10 +409,23 @@ export function initializeWriting() {
   }
 
   function showHint() {
+    console.log('Showing hint...');
     const { hints, mastery } = state.currentWord;
-    if (!hints || hints.length === 0) return;
+    if (!hints || hints.length === 0) {
+      console.log('No hints available');
+      return;
+    }
+    
+    if (!dom.hintSection) {
+      console.error('Hint section not found');
+      return;
+    }
+    
     const existingHintsCount = dom.hintSection.querySelectorAll(".hint").length;
-    if (existingHintsCount >= hints.length) return;
+    if (existingHintsCount >= hints.length) {
+      console.log('All hints already shown');
+      return;
+    }
 
     const hintElement = document.createElement("div");
     hintElement.className = "hint";
@@ -187,24 +438,26 @@ export function initializeWriting() {
     }
   }
 
-    // --- MODE CHANGE AND TIMER FUNCTIONS ---
-  function changeMode(newMode) {
+  // --- MODE CHANGE AND TIMER FUNCTIONS ---
+  async function changeMode(newMode) {
+    console.log('Changing mode to:', newMode);
     if (state.mode === newMode) return;
     state.mode = newMode;
 
     document.querySelectorAll(".writing-mode-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.mode === newMode);
     });
-    resetGame();
+    await resetGame();
   }
 
   function startTimer() {
+    console.log('Starting timer...');
     state.timeLeft = 30;
-    dom.timer.textContent = state.timeLeft;
-    dom.timePressure.classList.add("active");
+    if (dom.timer) dom.timer.textContent = state.timeLeft;
+    if (dom.timePressure) dom.timePressure.classList.add("active");
     state.timerInterval = setInterval(() => {
       state.timeLeft--;
-      dom.timer.textContent = state.timeLeft;
+      if (dom.timer) dom.timer.textContent = state.timeLeft;
       if (state.timeLeft <= 0) {
         clearInterval(state.timerInterval);
         timeUp();
@@ -213,12 +466,14 @@ export function initializeWriting() {
   }
 
   function timeUp() {
+    console.log('Time up!');
     showFeedback(false, "Czas minął!", state.currentWord.translations);
     updateUIafterAnswer();
     updateStatsUI();
   }
 
-  function resetGame() {
+  async function resetGame() {
+    console.log('Resetting game...');
     clearInterval(state.timerInterval);
     state.stats = {
       correct: 0,
@@ -227,38 +482,101 @@ export function initializeWriting() {
       totalTime: 0,
       answersCount: 0,
     };
+    
+    // Reset mastery for existing words
     state.wordDataWithProgress.forEach((word) => (word.mastery = 0));
-    dom.timePressure.classList.remove("active");
-    loadNextWord();
+    
+    // Reload words from backend
+    const words = await fetchWords(state.selectedLevel, state.selectedDifficulty);
+    
+    if (words.length > 0) {
+      state.wordDataWithProgress = words.map((word) => ({
+        _id: word._id,
+        word: word.word,
+        pronunciation: word.pronunciation || '',
+        context: word.context || '',
+        type: word.type || '',
+        level: word.level || '',
+        frequency: word.frequency || '',
+        translations: word.translations || [],
+        hints: word.hints || [],
+        difficulty: word.difficulty || '',
+        mastery: 0,
+        lastAnswerCorrect: true,
+      }));
+    }
+    
+    if (dom.timePressure) dom.timePressure.classList.remove("active");
+    await loadNextWord();
   }
 
-    // --- UI UPDATE FUNCTIONS ---
+  // --- UI UPDATE FUNCTIONS ---
   function resetUIForNewWord() {
-    dom.feedback.style.display = "none";
-    dom.feedback.className = "feedback";
-    dom.translationInput.value = "";
-    dom.translationInput.disabled = false;
-    dom.translationInput.focus();
-    dom.hintSection.innerHTML = "";
-    dom.checkBtn.style.display = "inline-block";
-    dom.hintBtn.style.display = "inline-block";
-    dom.skipBtn.style.display = "inline-block";
-    dom.nextBtn.style.display = "none";
-    dom.hintBtn.disabled = state.mode === "hardcore";
+    if (dom.feedback) {
+      dom.feedback.style.display = "none";
+      dom.feedback.className = "feedback";
+    }
+    
+    if (dom.translationInput) {
+      dom.translationInput.value = "";
+      dom.translationInput.disabled = false;
+      dom.translationInput.focus();
+    }
+    
+    if (dom.hintSection) {
+      dom.hintSection.innerHTML = "";
+    }
+    
+    if (dom.checkBtn) {
+      dom.checkBtn.style.display = "inline-block";
+    }
+    
+    if (dom.hintBtn) {
+      dom.hintBtn.style.display = "inline-block";
+      dom.hintBtn.disabled = state.mode === "hardcore";
+    }
+    
+    if (dom.skipBtn) {
+      dom.skipBtn.style.display = "inline-block";
+    }
+    
+    if (dom.nextBtn) {
+      dom.nextBtn.style.display = "none";
+    }
+    
     updateInputFeedback();
   }
 
   function updateUIafterAnswer() {
-    dom.translationInput.disabled = true;
-    dom.checkBtn.style.display = "none";
-    dom.hintBtn.style.display = "none";
-    dom.skipBtn.style.display = "none";
-    dom.nextBtn.style.display = "inline-block";
-    dom.nextBtn.focus();
+    if (dom.translationInput) {
+      dom.translationInput.disabled = true;
+    }
+    
+    if (dom.checkBtn) {
+      dom.checkBtn.style.display = "none";
+    }
+    
+    if (dom.hintBtn) {
+      dom.hintBtn.style.display = "none";
+    }
+    
+    if (dom.skipBtn) {
+      dom.skipBtn.style.display = "none";
+    }
+    
+    if (dom.nextBtn) {
+      dom.nextBtn.style.display = "inline-block";
+      dom.nextBtn.focus();
+    }
   }
 
-    // --- FEEDBACK AND STATISTICS FUNCTIONS ---
+  // --- FEEDBACK AND STATISTICS FUNCTIONS ---
   function showFeedback(type, message, correctAnswers = []) {
+    if (!dom.feedback) {
+      console.error('Feedback element not found');
+      return;
+    }
+    
     dom.feedback.style.display = "block";
     dom.feedback.innerHTML = "";
     const messageElement = document.createElement("span");
@@ -279,70 +597,112 @@ export function initializeWriting() {
   }
 
   function updateStatsUI() {
-    dom.correctCount.textContent = state.stats.correct;
-    dom.totalCount.textContent = state.stats.total;
-    dom.streakCount.textContent = state.stats.streak;
-    const accuracy =
-      state.stats.total > 0
-        ? Math.round((state.stats.correct / state.stats.total) * 100)
-        : 0;
-    dom.accuracy.textContent = `${accuracy}%`;
-    const avgTime =
-      state.stats.answersCount > 0
-        ? (state.stats.totalTime / state.stats.answersCount).toFixed(1)
-        : 0;
-    dom.avgTime.textContent = `${avgTime}s`;
-    const totalMastery = state.wordDataWithProgress.reduce(
-      (sum, word) => sum + word.mastery,
-      0
-    );
+    if (dom.correctCount) dom.correctCount.textContent = state.stats.correct;
+    if (dom.totalCount) dom.totalCount.textContent = state.stats.total;
+    if (dom.streakCount) dom.streakCount.textContent = state.stats.streak;
+    
+    const accuracy = state.stats.total > 0 ? Math.round((state.stats.correct / state.stats.total) * 100) : 0;
+    if (dom.accuracy) dom.accuracy.textContent = `${accuracy}%`;
+    
+    const avgTime = state.stats.answersCount > 0 ? (state.stats.totalTime / state.stats.answersCount).toFixed(1) : 0;
+    if (dom.avgTime) dom.avgTime.textContent = `${avgTime}s`;
+    
+    const totalMastery = state.wordDataWithProgress.reduce((sum, word) => sum + word.mastery, 0);
     const maxMastery = state.wordDataWithProgress.length * 100;
-    const masteryPercentage =
-      maxMastery > 0 ? Math.round((totalMastery / maxMastery) * 100) : 0;
-    dom.masteryLevel.textContent = `${masteryPercentage}%`;
-    dom.masteryBar.style.width = `${masteryPercentage}%`;
-    const reviewCount = state.wordDataWithProgress.filter(
-      (word) => word.mastery < 80
-    ).length;
-    dom.reviewWords.textContent = reviewCount;
+    const masteryPercentage = maxMastery > 0 ? Math.round((totalMastery / maxMastery) * 100) : 0;
+    
+    if (dom.masteryLevel) dom.masteryLevel.textContent = `${masteryPercentage}%`;
+    if (dom.masteryBar) dom.masteryBar.style.width = `${masteryPercentage}%`;
+    
+    const reviewCount = state.wordDataWithProgress.filter((word) => word.mastery < 80).length;
+    if (dom.reviewWords) dom.reviewWords.textContent = reviewCount;
   }
 
   function updateInputFeedback() {
-    if (!state.currentWord) return;
+    if (!state.currentWord || !dom.translationInput) return;
+    
     const userInput = dom.translationInput.value;
     const correctAnswers = state.currentWord.translations;
-    dom.charCount.textContent = userInput.length;
-    dom.expectedLength.textContent = correctAnswers[0].length;
-    if (userInput.length > 0) {
+    
+    if (dom.charCount) dom.charCount.textContent = userInput.length;
+    if (dom.expectedLength && correctAnswers.length > 0) {
+      dom.expectedLength.textContent = correctAnswers[0].length;
+    }
+    
+    if (userInput.length > 0 && correctAnswers.length > 0) {
       const similarity = getHighestSimilarity(userInput, correctAnswers);
       const percentage = Math.round(similarity * 100);
-      dom.similarityMeter.classList.add("show");
-      dom.similarityFill.style.width = `${percentage}%`;
-      dom.similarityText.textContent = `Podobieństwo: ${percentage}%`;
+      
+      if (dom.similarityMeter) {
+        dom.similarityMeter.classList.add("show");
+      }
+      
+      if (dom.similarityFill) {
+        dom.similarityFill.style.width = `${percentage}%`;
+      }
+      
+      if (dom.similarityText) {
+        dom.similarityText.textContent = `Podobieństwo: ${percentage}%`;
+      }
+      
       if (percentage > 70 && percentage < 100) {
-        dom.typoIndicator.classList.add("show");
-        dom.typoText.textContent = `Czy chodziło Ci o: ${findClosestAnswer(
-          userInput,
-          correctAnswers
-        )}?`;
+        if (dom.typoIndicator) {
+          dom.typoIndicator.classList.add("show");
+        }
+        if (dom.typoText) {
+          dom.typoText.textContent = `Czy chodziło Ci o: ${findClosestAnswer(userInput, correctAnswers)}?`;
+        }
       } else {
-        dom.typoIndicator.classList.remove("show");
+        if (dom.typoIndicator) {
+          dom.typoIndicator.classList.remove("show");
+        }
       }
     } else {
-      dom.similarityMeter.classList.remove("show");
-      dom.typoIndicator.classList.remove("show");
+      if (dom.similarityMeter) {
+        dom.similarityMeter.classList.remove("show");
+      }
+      if (dom.typoIndicator) {
+        dom.typoIndicator.classList.remove("show");
+      }
     }
   }
 
-    // --- FINAL SCORE DISPLAY ---
+  // --- UI HELPER FUNCTIONS ---
+  function showLoading(show) {
+    if (dom.loadingIndicator) {
+      dom.loadingIndicator.style.display = show ? "block" : "none";
+    }
+  }
+
+  function showError(message) {
+    console.error('Error:', message);
+    if (dom.errorMessage) {
+      dom.errorMessage.textContent = message;
+      dom.errorMessage.style.display = "block";
+      setTimeout(() => {
+        dom.errorMessage.style.display = "none";
+      }, 5000);
+    } else {
+      alert(message);
+    }
+  }
+
+  // --- FINAL SCORE DISPLAY ---
   function showFinalScore() {
+    console.log('Showing final score');
     const wordSection = document.getElementById("word-section-id");
     if (wordSection) {
-      wordSection.innerHTML = `<div class="header"><h2 class="title">Koniec!</h2><p class="subtitle">Oto Twoje końcowe statystyki. Świetna robota!</p></div><button class="btn btn-primary" onclick="location.reload()">Zagraj jeszcze raz</button>`;
+      wordSection.innerHTML = `
+        <div class="header">
+          <h2 class="title">Koniec!</h2>
+          <p class="subtitle">Oto Twoje końcowe statystyki. Świetna robota!</p>
+        </div>
+        <button class="btn btn-primary" onclick="location.reload()">Zagraj jeszcze raz</button>
+      `;
     }
   }
 
-    // --- UTILITY FUNCTIONS ---
+  // --- UTILITY FUNCTIONS ---
   function levenshteinDistance(a, b) {
     const matrix = Array(b.length + 1)
       .fill(null)
@@ -369,16 +729,38 @@ export function initializeWriting() {
   }
 
   function getHighestSimilarity(input, answers) {
-    return Math.max(...answers.map((answer) => getSimilarity(input, answer)));
+    if (!answers || answers.length === 0) return 0;
+    return Math.max(...answers.map((answer) => getSimilarity(input.toLowerCase(), answer.toLowerCase())));
   }
 
   function findClosestAnswer(input, answers) {
+    if (!answers || answers.length === 0) return '';
     return answers.reduce((best, current) =>
-      getSimilarity(input, current) > getSimilarity(input, best)
+      getSimilarity(input.toLowerCase(), current.toLowerCase()) > getSimilarity(input.toLowerCase(), best.toLowerCase())
         ? current
         : best
     );
   }
 
-  init();
+  // --- PUBLIC API ---
+  const api = {
+    setLevel: (level) => {
+      state.selectedLevel = level;
+      resetGame();
+    },
+    setDifficulty: (difficulty) => {
+      state.selectedDifficulty = difficulty;
+      resetGame();
+    },
+    getStats: () => state.stats,
+    fetchBackendStats: fetchStats,
+  };
+
+  // Initialize the game
+  init().catch(error => {
+    console.error('Failed to initialize writing module:', error);
+    showError('Nie udało się zainicjalizować modułu pisania.');
+  });
+  
+  return api;
 }
