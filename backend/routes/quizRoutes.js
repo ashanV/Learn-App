@@ -26,7 +26,9 @@ router.get("/questions", async (req, res) => {
     if (!words || words.length < questionsCount) {
       return res
         .status(404)
-        .json({ message: "Niewystarczająca liczba słówek dla podanego języka." });
+        .json({
+          message: "Niewystarczająca liczba słówek dla podanego języka.",
+        });
     }
 
     const questions = [];
@@ -35,33 +37,50 @@ router.get("/questions", async (req, res) => {
     for (let i = 0; i < questionsCount && i < words.length; i++) {
       const correctWord = words[i];
       if (usedWords.has(correctWord._id.toString())) continue;
-      
+
       usedWords.add(correctWord._id.toString());
 
       // Create distractors (wrong answers)
       const distractors = words
-        .filter(w => 
-          !usedWords.has(w._id.toString()) && 
-          w._id.toString() !== correctWord._id.toString()
+        .filter(
+          (w) =>
+            !usedWords.has(w._id.toString()) &&
+            w._id.toString() !== correctWord._id.toString()
         )
         .slice(0, 3)
-        .map(w => w.polishTranslation);
+        .map((w) => w.polishTranslation);
 
       // Add distractors to used words to avoid repetition
       words
-        .filter(w => distractors.includes(w.polishTranslation))
-        .forEach(w => usedWords.add(w._id.toString()));
+        .filter((w) => distractors.includes(w.polishTranslation))
+        .forEach((w) => usedWords.add(w._id.toString()));
 
       if (distractors.length < 3) {
         // If not enough distractors, create some generic ones
         const genericDistractors = [
-          "nie wiem", "może", "trudne", "łatwe", "test", "quiz", 
-          "słowo", "język", "nauka", "odpowiedź", "pytanie", "opcja"
+          "nie wiem",
+          "może",
+          "trudne",
+          "łatwe",
+          "test",
+          "quiz",
+          "słowo",
+          "język",
+          "nauka",
+          "odpowiedź",
+          "pytanie",
+          "opcja",
         ];
-        
+
         while (distractors.length < 3) {
-          const randomDistractor = genericDistractors[Math.floor(Math.random() * genericDistractors.length)];
-          if (!distractors.includes(randomDistractor) && randomDistractor !== correctWord.polishTranslation) {
+          const randomDistractor =
+            genericDistractors[
+              Math.floor(Math.random() * genericDistractors.length)
+            ];
+          if (
+            !distractors.includes(randomDistractor) &&
+            randomDistractor !== correctWord.polishTranslation
+          ) {
             distractors.push(randomDistractor);
           }
         }
@@ -69,7 +88,7 @@ router.get("/questions", async (req, res) => {
 
       // Create options array with correct answer and distractors
       const options = [correctWord.polishTranslation, ...distractors];
-      
+
       // Shuffle options
       for (let j = options.length - 1; j > 0; j--) {
         const k = Math.floor(Math.random() * (j + 1));
@@ -84,19 +103,18 @@ router.get("/questions", async (req, res) => {
         sourceWord: correctWord.sourceWord,
         options: options,
         correctAnswer: correctAnswerIndex,
-        language: lang
+        language: lang,
       });
     }
 
     res.status(200).json({
       questions: questions.slice(0, questionsCount),
-      totalQuestions: questions.length
+      totalQuestions: questions.length,
     });
-
   } catch (error) {
     console.error("Błąd pobierania pytań quizu:", error);
-    res.status(500).json({ 
-      message: "Błąd serwera podczas pobierania pytań quizu" 
+    res.status(500).json({
+      message: "Błąd serwera podczas pobierania pytań quizu",
     });
   }
 });
@@ -104,98 +122,45 @@ router.get("/questions", async (req, res) => {
 // Submit quiz results
 router.post("/submit", async (req, res) => {
   try {
-    const { firebaseUid, results, totalQuestions, correctAnswers, timeSpent } = req.body;
+    const { firebaseUid, results, totalQuestions, correctAnswers, timeSpent } =
+      req.body;
 
-    if (!firebaseUid || !results || typeof correctAnswers !== 'number') {
+    if (!firebaseUid || !results || typeof correctAnswers !== "number") {
       return res.status(400).json({
-        message: "Wymagane są: firebaseUid, results i correctAnswers"
+        message: "Wymagane są: firebaseUid, results i correctAnswers",
       });
     }
 
-    // Update user stats
+    // Find user
     const user = await User.findOne({ firebaseUid });
     if (!user) {
       return res.status(404).json({
-        message: "Użytkownik nie został znaleziony"
+        message: "Użytkownik nie został znaleziony",
       });
     }
 
     const incorrectAnswers = totalQuestions - correctAnswers;
-    const accuracyPercentage = Math.round((correctAnswers / totalQuestions) * 100);
+    const accuracyPercentage = Math.round(
+      (correctAnswers / totalQuestions) * 100
+    );
 
-    // Update overall stats
+    // Just add quiz history - statistics are already updated during the quiz
     await User.findOneAndUpdate(
       { firebaseUid },
       {
-        $inc: {
-          "overallStats.totalCorrectAnswers": correctAnswers,
-          "overallStats.totalIncorrectAnswers": incorrectAnswers,
-        },
         $push: {
-          "quizHistory": {
+          quizHistory: {
             date: new Date(),
             totalQuestions,
             correctAnswers,
             incorrectAnswers,
             accuracyPercentage,
             timeSpent: timeSpent || 0,
-            results
-          }
-        }
+            results,
+          },
+        },
       }
     );
-
-    // Update daily progress for each correct answer
-    if (correctAnswers > 0) {
-      for (let i = 0; i < correctAnswers; i++) {
-        // Call the existing daily progress update endpoint logic
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const updatedUser = await User.findOne({ firebaseUid });
-        const lastCompletedDate = updatedUser.dailyStats.lastCompletedDate
-          ? new Date(updatedUser.dailyStats.lastCompletedDate)
-          : null;
-
-        let completedWords = updatedUser.dailyStats.completedWords || 0;
-        let streak = updatedUser.dailyStats.streak || 0;
-
-        if (
-          !lastCompletedDate ||
-          lastCompletedDate.toDateString() !== today.toDateString()
-        ) {
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-
-          if (
-            lastCompletedDate &&
-            lastCompletedDate.toDateString() === yesterday.toDateString()
-          ) {
-            const dailyGoal = updatedUser.learningPreferences.dailyGoal || 10;
-            const yesterdayCompleted = updatedUser.dailyStats.completedWords || 0;
-
-            if (yesterdayCompleted >= dailyGoal) {
-              streak += 1;
-            }
-          } else if (lastCompletedDate) {
-            streak = 0;
-          }
-
-          completedWords = 1;
-        } else {
-          completedWords += 1;
-        }
-
-        await User.findOneAndUpdate(
-          { firebaseUid },
-          {
-            "dailyStats.completedWords": completedWords,
-            "dailyStats.lastCompletedDate": new Date(),
-            "dailyStats.streak": streak,
-          }
-        );
-      }
-    }
 
     res.status(200).json({
       message: "Wyniki quizu zostały zapisane pomyślnie",
@@ -204,14 +169,13 @@ router.post("/submit", async (req, res) => {
         correctAnswers,
         incorrectAnswers,
         accuracyPercentage,
-        timeSpent: timeSpent || 0
-      }
+        timeSpent: timeSpent || 0,
+      },
     });
-
   } catch (error) {
     console.error("Błąd zapisywania wyników quizu:", error);
     res.status(500).json({
-      message: "Błąd serwera podczas zapisywania wyników quizu"
+      message: "Błąd serwera podczas zapisywania wyników quizu",
     });
   }
 });
@@ -226,7 +190,7 @@ router.get("/user/:firebaseUid/quiz-history", async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        message: "Użytkownik nie został znaleziony"
+        message: "Użytkownik nie został znaleziony",
       });
     }
 
@@ -237,24 +201,35 @@ router.get("/user/:firebaseUid/quiz-history", async (req, res) => {
 
     // Calculate stats
     const totalQuizzes = quizHistory.length;
-    const averageAccuracy = totalQuizzes > 0 
-      ? Math.round(quizHistory.reduce((sum, quiz) => sum + quiz.accuracyPercentage, 0) / totalQuizzes)
-      : 0;
+    const averageAccuracy =
+      totalQuizzes > 0
+        ? Math.round(
+            quizHistory.reduce(
+              (sum, quiz) => sum + quiz.accuracyPercentage,
+              0
+            ) / totalQuizzes
+          )
+        : 0;
 
     res.status(200).json({
       history: limitedHistory,
       stats: {
         totalQuizzes,
         averageAccuracy,
-        bestScore: totalQuizzes > 0 ? Math.max(...quizHistory.map(q => q.accuracyPercentage)) : 0,
-        totalTimeSpent: quizHistory.reduce((sum, quiz) => sum + (quiz.timeSpent || 0), 0)
-      }
+        bestScore:
+          totalQuizzes > 0
+            ? Math.max(...quizHistory.map((q) => q.accuracyPercentage))
+            : 0,
+        totalTimeSpent: quizHistory.reduce(
+          (sum, quiz) => sum + (quiz.timeSpent || 0),
+          0
+        ),
+      },
     });
-
   } catch (error) {
     console.error("Błąd pobierania historii quizów:", error);
     res.status(500).json({
-      message: "Błąd serwera podczas pobierania historii quizów"
+      message: "Błąd serwera podczas pobierania historii quizów",
     });
   }
 });

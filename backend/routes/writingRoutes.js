@@ -1,5 +1,6 @@
 import express from "express";
 import WritingWord from "../models/WritingWord.js";
+import User from "../models/User.js"; 
 
 const router = express.Router();
 
@@ -122,7 +123,7 @@ router.get("/words/level/:level", async (req, res) => {
 // Check user's answer against the word's translations
 router.post("/check-answer", async (req, res) => {
   try {
-    const { wordId, userAnswer } = req.body;
+    const { wordId, userAnswer, userId } = req.body; 
 
     if (!wordId || !userAnswer) {
       return res.status(400).json({
@@ -159,6 +160,80 @@ router.post("/check-answer", async (req, res) => {
         closestTranslation = translation;
       }
     });
+
+    // If the answer is correct, update user's statistics
+    if (userId && isCorrect) {
+      try {
+        const user = await User.findOne({ firebaseUid: userId });
+        if (user) {
+          const wordAlreadyMastered = user.masteredWords.includes(wordId);
+
+          if (!wordAlreadyMastered) {
+            // Add a word to the mastered ones
+            user.masteredWords.push(wordId);
+
+            // Update daily stats
+            const today = new Date();
+            const todayStr = today.toISOString().split("T")[0];
+
+            let dailyProgress = user.dailyProgress.find(
+              (progress) =>
+                progress.date.toISOString().split("T")[0] === todayStr
+            );
+
+            if (!dailyProgress) {
+              // Create a new entry for today
+              dailyProgress = {
+                date: today,
+                wordsLearned: 0,
+                timeSpent: 0,
+                streakCount: 0,
+                accuracy: 0,
+                sessionsCompleted: 0,
+              };
+              user.dailyProgress.push(dailyProgress);
+            }
+            
+            dailyProgress.wordsLearned += 1;
+
+            // Update streak
+            user.currentStreak += 1;
+            if (user.currentStreak > user.longestStreak) {
+              user.longestStreak = user.currentStreak;
+            }
+
+            // Update overall accuracy
+            user.totalCorrectAnswers += 1;
+            user.totalAnswers += 1;
+            user.overallAccuracy = Math.round(
+              (user.totalCorrectAnswers / user.totalAnswers) * 100
+            );
+
+            await user.save();
+          } else {
+           // Word already learned, but still update answer stats
+            user.totalCorrectAnswers += 1;
+            user.totalAnswers += 1;
+            user.overallAccuracy = Math.round(
+              (user.totalCorrectAnswers / user.totalAnswers) * 100
+            );
+
+            // Update streak
+            user.currentStreak += 1;
+            if (user.currentStreak > user.longestStreak) {
+              user.longestStreak = user.currentStreak;
+            }
+
+            await user.save();
+          }
+        }
+      } catch (userUpdateError) {
+        console.error(
+          "Błąd aktualizacji statystyk użytkownika:",
+          userUpdateError
+        );
+      }
+    }
 
     res.status(200).json({
       success: true,

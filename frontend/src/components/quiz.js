@@ -1,4 +1,7 @@
+import { auth } from "../../../backend/config/firebase-config.js";
+
 let activeTimer = null;
+
 export function stopQuizTimer() {
   if (activeTimer) {
     clearInterval(activeTimer);
@@ -7,88 +10,69 @@ export function stopQuizTimer() {
 }
 
 export function initializeQuiz() {
-  // --- Interface elements ---
+  // DOM Elements
   const quizContainer = document.getElementById("quiz-container");
   const questionContainer = document.getElementById("questionContainer");
   const controls = document.querySelector(".controls");
 
-  // Header and Statistics
   const questionNumberEl = document.getElementById("questionNumber");
   const questionEl = document.getElementById("question");
   const optionsEl = document.getElementById("options");
   const feedbackEl = document.getElementById("feedback");
 
-  // Statistics
   const questionCountEl = document.getElementById("questionCount");
   const scoreEl = document.getElementById("score");
   const timerEl = document.getElementById("timer");
   const progressEl = document.getElementById("progress");
 
-  // Buttons
   const nextBtn = document.getElementById("nextBtn");
   const restartBtn = document.getElementById("restartBtn");
 
-  // Sounds
   const correctSound = new Audio("/frontend/public/assets/sound/correct.mp3");
   const incorrectSound = new Audio(
     "/frontend/public/assets/sound/incorrect.mp3"
   );
 
-  // --- State variables ---
-  let questions = [];
-  let currentQuestionIndex = 0;
-  let score = 0;
-  let timeLimit = 30;
-  let timeRemaining = timeLimit;
-  let isQuizActive = false;
-  let startTime = null;
-  let userAnswers = [];
+  // Quiz State
+  let questions = [],
+    userAnswers = [],
+    currentQuestionIndex = 0,
+    score = 0;
+  const timeLimit = 30;
+  let timeRemaining = timeLimit,
+    isQuizActive = false,
+    startTime = null;
 
-  // Initialization
-
+  // --- Initialization ---
   async function init() {
     try {
       setupEventListeners();
       await restartQuiz();
     } catch (error) {
-      console.error("Błąd inicjalizacji quizu:", error);
+      console.error("Init error:", error);
       showError(
         "Nie udało się załadować pytań quizu. Spróbuj ponownie później."
       );
     }
   }
 
-  // Quiz Logic
-
   async function loadQuestions() {
-    // This function now ONLY takes questions
+    const lang = localStorage.getItem("selectedLanguage") || "en";
     try {
-      const selectedLanguage = localStorage.getItem("selectedLanguage") || "en";
-      const questionsCount = 10;
-      const response = await fetch(
-        `http://localhost:5000/api/quiz/questions?lang=${selectedLanguage}&count=${questionsCount}`
+      const res = await fetch(
+        `http://localhost:5000/api/quiz/questions?lang=${lang}&count=10`
       );
-
-      if (!response.ok) {
-        throw new Error(`Błąd serwera: ${response.status}`);
-      }
-      const data = await response.json();
-      if (!data.questions || data.questions.length === 0) {
-        throw new Error("Brak pytań dla wybranego języka.");
-      }
-      questions = data.questions; // We update the question pool
-    } catch (error) {
-      console.error("Błąd ładowania pytań:", error);
-      throw error;
+      const data = await res.json();
+      if (!res.ok || !data.questions?.length) throw new Error("Brak pytań.");
+      questions = data.questions;
+    } catch (err) {
+      console.error("Fetch error:", err);
+      throw err;
     }
   }
 
-  // Starting the Quiz
   function startQuiz() {
-    if (questions.length === 0) {
-      showError("Brak pytań do rozpoczęcia quizu.");
-      return;
-    }
+    if (!questions.length) return showError("Brak pytań do rozpoczęcia quizu.");
     isQuizActive = true;
     startTime = new Date();
     showQuizInterface();
@@ -97,90 +81,86 @@ export function initializeQuiz() {
     startTimer();
   }
 
-  // Displaying Questions
   function displayQuestion() {
-    if (currentQuestionIndex >= questions.length) {
-      endQuiz();
-      return;
-    }
-
+    if (currentQuestionIndex >= questions.length) return endQuiz();
     const question = questions[currentQuestionIndex];
-    if (questionNumberEl)
-      questionNumberEl.textContent = `Pytanie ${currentQuestionIndex + 1}`;
-    if (questionEl) questionEl.textContent = question.question;
 
-    if (optionsEl) {
-      optionsEl.innerHTML = "";
-      question.options.forEach((option, index) => {
-        const optionEl = document.createElement("div");
-        optionEl.className = "quiz-option";
-        optionEl.setAttribute("data-answer", index);
-        optionEl.textContent = option;
-        optionsEl.appendChild(optionEl);
-      });
-    }
+    questionNumberEl.textContent = `Pytanie ${currentQuestionIndex + 1}`;
+    questionEl.textContent = question.question;
 
-    if (feedbackEl) {
-      feedbackEl.innerHTML = "";
-      feedbackEl.style.display = "none";
-    }
+    optionsEl.innerHTML = "";
+    question.options.forEach((opt, idx) => {
+      const el = document.createElement("div");
+      el.className = "quiz-option";
+      el.dataset.answer = idx;
+      el.textContent = opt;
+      optionsEl.appendChild(el);
+    });
 
-    if (nextBtn) nextBtn.disabled = true;
-
+    feedbackEl.innerHTML = "";
+    feedbackEl.style.display = "none";
+    nextBtn.disabled = true;
     resetTimer();
     updateTimerDisplay();
   }
 
-  // Answer Selection
-  function selectAnswer(selectedOption) {
+  async function selectAnswer(selectedOption) {
     if (!isQuizActive) return;
-
-    isQuizActive = false;
     stopQuizTimer();
+    isQuizActive = false;
 
-    const selectedIndex = parseInt(selectedOption.dataset.answer, 10);
-    const question = questions[currentQuestionIndex];
-    const isCorrect = selectedIndex === question.correctAnswer;
+    const idx = +selectedOption.dataset.answer;
+    const q = questions[currentQuestionIndex];
+    const correct = idx === q.correctAnswer;
 
     userAnswers.push({
-      questionId: question.id,
-      questionText: question.question,
-      selectedAnswer: selectedIndex,
-      selectedText: question.options[selectedIndex],
-      correctAnswer: question.correctAnswer,
-      correctText: question.options[question.correctAnswer],
-      isCorrect: isCorrect,
+      questionId: q.id,
+      questionText: q.question,
+      selectedAnswer: idx,
+      selectedText: q.options[idx],
+      correctAnswer: q.correctAnswer,
+      correctText: q.options[q.correctAnswer],
+      isCorrect: correct,
       timeSpent: timeLimit - timeRemaining,
     });
 
-    if (isCorrect) {
+    if (correct) {
       score++;
       selectedOption.classList.add("correct");
       correctSound.play();
+      await updateUserStats();
     } else {
       selectedOption.classList.add("incorrect");
-      const correctOption = optionsEl.children[question.correctAnswer];
-      incorrectSound.play();
-      if (correctOption) correctOption.classList.add("correct");
-      for (let i = 0; i < optionsEl.children.length; i++) {
-        if (i !== question.correctAnswer) {
-          optionsEl.children[i].classList.add("incorrect");
-        }
-      }
-      selectedOption.classList.add("incorrect");
-      selectedOption.classList.remove("correct");
-      if (correctOption) {
-        correctOption.classList.add("correct");
-      }
-      selectedOption.classList.remove("incorrect");
-      selectedOption.classList.remove("correct");
-      selectedOption.classList.add("incorrect");
+      [...optionsEl.children].forEach((el, i) => {
+        el.classList.add(i === q.correctAnswer ? "correct" : "incorrect");
+      });
       incorrectSound.play();
     }
 
-    showFeedback(isCorrect, question.options[question.correctAnswer]);
+    showFeedback(correct, q.options[q.correctAnswer]);
     updateStats();
-    if (nextBtn) nextBtn.disabled = false;
+    nextBtn.disabled = false;
+  }
+
+  async function updateUserStats() {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      await fetch(
+        `http://localhost:5000/api/user/${user.uid}/update-daily-progress`,
+        { method: "POST" }
+      );
+      await fetch(
+        `http://localhost:5000/api/user/${user.uid}/update-overall-stats`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ correctAnswers: 1, incorrectAnswers: 0 }),
+        }
+      );
+    } catch (err) {
+      console.error("Stat update error:", err);
+    }
   }
 
   function nextQuestion() {
@@ -190,21 +170,35 @@ export function initializeQuiz() {
       displayQuestion();
       updateStats();
       startTimer();
-    } else {
-      endQuiz();
-    }
+    } else endQuiz();
   }
 
   async function endQuiz() {
-    isQuizActive = false;
     stopQuizTimer();
-    const endTime = new Date();
-    const totalTimeSpent = Math.round((endTime - startTime) / 1000);
-
-    await showResults(totalTimeSpent);
+    const timeSpent = Math.round((new Date() - startTime) / 1000);
+    await submitQuizResults(timeSpent);
+    await showResults(timeSpent);
   }
 
-  // Time
+  async function submitQuizResults(timeSpent) {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      await fetch("http://localhost:5000/api/quiz/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firebaseUid: user.uid,
+          results: userAnswers,
+          totalQuestions: questions.length,
+          correctAnswers: userAnswers.filter((a) => a.isCorrect).length,
+          timeSpent,
+        }),
+      });
+    } catch (err) {
+      console.error("Submit error:", err);
+    }
+  }
 
   function startTimer() {
     stopQuizTimer();
@@ -213,9 +207,7 @@ export function initializeQuiz() {
     activeTimer = setInterval(() => {
       timeRemaining--;
       updateTimerDisplay();
-      if (timeRemaining <= 0) {
-        timeUp();
-      }
+      if (timeRemaining <= 0) timeUp();
     }, 1000);
   }
 
@@ -226,151 +218,102 @@ export function initializeQuiz() {
   function timeUp() {
     stopQuizTimer();
     isQuizActive = false;
+    const q = questions[currentQuestionIndex];
 
-    const question = questions[currentQuestionIndex];
     userAnswers.push({
-      questionId: question.id,
-      questionText: question.question,
+      questionId: q.id,
+      questionText: q.question,
       selectedAnswer: -1,
       selectedText: "Brak odpowiedzi",
-      correctAnswer: question.correctAnswer,
-      correctText: question.options[question.correctAnswer],
+      correctAnswer: q.correctAnswer,
+      correctText: q.options[q.correctAnswer],
       isCorrect: false,
       timeSpent: timeLimit,
     });
 
-    showFeedback(false, question.options[question.correctAnswer], true);
-    const correctOption = optionsEl.children[question.correctAnswer];
-    if (correctOption) correctOption.classList.add("correct");
-
-    if (nextBtn) nextBtn.disabled = false;
+    showFeedback(false, q.options[q.correctAnswer], true);
+    optionsEl.children[q.correctAnswer]?.classList.add("correct");
+    nextBtn.disabled = false;
   }
 
-  // Interface and Results
-
   function showQuizInterface() {
-    if (questionContainer) questionContainer.style.display = "block";
-    if (controls) controls.style.display = "flex";
+    questionContainer.style.display = "block";
+    controls.style.display = "flex";
     clearPreviousResults();
   }
 
-  function showFeedback(isCorrect, correctAnswerText, isTimeout = false) {
-    if (!feedbackEl) return;
-    if (isTimeout) {
-      feedbackEl.innerHTML = `
-        <div class="feedback-timeout">
-          <span class="feedback-icon">⏰</span>
-          <span class="feedback-text">
-            Czas się skończył! Poprawna odpowiedź to: <strong>${correctAnswerText}</strong>
-          </span>
-        </div>`;
-    } else if (isCorrect) {
-      feedbackEl.innerHTML = `
-        <div class="quiz-feedback-correct">
-          <span class="feedback-icon">✅</span>
-          <span class="feedback-text">Brawo! To jest poprawna odpowiedź.</span>
-        </div>`;
-    } else {
-      feedbackEl.innerHTML = `
-        <div class="quiz-feedback-incorrect">
-          <span class="feedback-icon">❌</span>
-          <span class="feedback-text">
-            Niepoprawnie. Poprawna odpowiedź to: <strong>${correctAnswerText}</strong>
-          </span>
-        </div>`;
-    }
+  function showFeedback(correct, correctText, timeout = false) {
+    feedbackEl.innerHTML = timeout
+      ? `<div class="feedback-timeout"><span class="feedback-icon">⏰</span><span>Czas się skończył! Poprawna odpowiedź: <strong>${correctText}</strong></span></div>`
+      : correct
+      ? `<div class="quiz-feedback-correct"><span class="feedback-icon">✅</span><span>Brawo! Poprawna odpowiedź.</span></div>`
+      : `<div class="quiz-feedback-incorrect"><span class="feedback-icon">❌</span><span>Niepoprawnie. Poprawna odpowiedź: <strong>${correctText}</strong></span></div>`;
     feedbackEl.style.display = "block";
   }
 
-  async function showResults(totalTimeSpent) {
+  async function showResults(timeSpent) {
     clearPreviousResults();
-    if (questionContainer) questionContainer.style.display = "none";
-    if (controls) controls.style.display = "none";
+    questionContainer.style.display = "none";
+    controls.style.display = "none";
 
-    const accuracy =
-      questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
-    const resultsContainer = document.createElement("div");
-    resultsContainer.className = "quiz-results";
-    resultsContainer.innerHTML = `
+    const accuracy = questions.length
+      ? Math.round((score / questions.length) * 100)
+      : 0;
+    const res = document.createElement("div");
+    res.className = "quiz-results";
+    res.innerHTML = `
       <div class="results-header">
         <h2>🎉 Quiz Zakończony!</h2>
-        <div class="final-score"><div class="score-circle">
-            <span class="score-percentage">${accuracy}%</span>
-            <span class="score-text">Dokładność</span>
-        </div></div>
+        <div class="score-circle"><span class="score-percentage">${accuracy}%</span><span>Dokładność</span></div>
       </div>
       <div class="results-stats">
-        <div class="result-stat"><span class="quiz-result-stat-label">Poprawne ✅</span><span class="quiz-result-stat-value">${score}/${
-      questions.length
-    }</span></div>
-        <div class="result-stat"><span class="quiz-result-stat-label">Czas ⌛️</span><span class="quiz-result-stat-value">${Math.floor(
-          totalTimeSpent / 60
-        )}:${(totalTimeSpent % 60).toString().padStart(2, "0")}</span></div>
+        <div class="result-stat">Poprawne ✅: ${score}/${questions.length}</div>
+        <div class="result-stat">Czas ⌛️: ${Math.floor(timeSpent / 60)}:${(
+      timeSpent % 60
+    )
+      .toString()
+      .padStart(2, "0")}</div>
       </div>
       <div class="results-actions">
         <button class="quiz-btn quiz-btn-primary" id="tryAgainBtn">🔄 Spróbuj ponownie</button>
         <button class="quiz-btn quiz-btn-secondary" onclick="returnToModes()">🏠 Powrót do trybów</button>
       </div>`;
-
-    quizContainer.appendChild(resultsContainer);
+    quizContainer.appendChild(res);
     document
       .getElementById("tryAgainBtn")
       .addEventListener("click", restartQuiz);
   }
 
   function updateStats() {
-    if (questionCountEl)
-      questionCountEl.textContent = `${currentQuestionIndex + 1}/${
-        questions.length
-      }`;
-    if (scoreEl) scoreEl.textContent = score;
-    if (progressEl) {
-      const progressPercent =
-        questions.length > 0
-          ? ((currentQuestionIndex + 1) / questions.length) * 100
-          : 0;
-      progressEl.style.width = `${progressPercent}%`;
-    }
+    questionCountEl.textContent = `${currentQuestionIndex + 1}/${
+      questions.length
+    }`;
+    scoreEl.textContent = score;
+    progressEl.style.width = `${
+      ((currentQuestionIndex + 1) / questions.length) * 100
+    }%`;
   }
 
   function updateTimerDisplay() {
-    if (timerEl) {
-      timerEl.textContent = `${timeRemaining}s`;
-      if (timeRemaining <= 5) {
-        timerEl.classList.add("timer-warning");
-      } else {
-        timerEl.classList.remove("timer-warning");
-      }
-    }
+    timerEl.textContent = `${timeRemaining}s`;
+    timerEl.classList.toggle("timer-warning", timeRemaining <= 5);
   }
 
-  function showError(message) {
-    quizContainer.innerHTML = `
-      <div class="quiz-error">
-        <h3>❌ Błąd</h3>
-        <p>${message}</p>
-        <button class="quiz-btn" onclick="returnToModes()">Powrót do trybów</button>
-      </div>`;
+  function showError(msg) {
+    quizContainer.innerHTML = `<div class="quiz-error"><h3>❌ Błąd</h3><p>${msg}</p><button class="quiz-btn" onclick="returnToModes()">Powrót do trybów</button></div>`;
   }
-
-  // Auxiliary
 
   async function restartQuiz() {
     stopQuizTimer();
     isQuizActive = false;
-
     try {
       await loadQuestions();
-
       resetQuizState();
       clearPreviousResults();
-
       startQuiz();
-    } catch (error) {
-      console.error("Nie udało się zrestartować quizu:", error);
-      showError(
-        "Nie udało się załadować nowych pytań. Sprawdź połączenie i spróbuj ponownie."
-      );
+    } catch (err) {
+      console.error("Restart error:", err);
+      showError("Nie udało się załadować pytań.");
     }
   }
 
@@ -382,22 +325,18 @@ export function initializeQuiz() {
   }
 
   function clearPreviousResults() {
-    const resultsContainers = quizContainer.querySelectorAll(
-      ".quiz-results, .detailed-results, .quiz-error"
-    );
-    resultsContainers.forEach((el) => el.remove());
+    quizContainer
+      .querySelectorAll(".quiz-results, .quiz-error")
+      .forEach((el) => el.remove());
   }
 
   function setupEventListeners() {
-    if (optionsEl) {
-      optionsEl.addEventListener("click", (e) => {
-        if (e.target.classList.contains("quiz-option") && isQuizActive) {
-          selectAnswer(e.target);
-        }
-      });
-    }
-    if (nextBtn) nextBtn.addEventListener("click", nextQuestion);
-    if (restartBtn) restartBtn.addEventListener("click", restartQuiz);
+    optionsEl.addEventListener("click", (e) => {
+      if (e.target.classList.contains("quiz-option") && isQuizActive)
+        selectAnswer(e.target);
+    });
+    nextBtn.addEventListener("click", nextQuestion);
+    restartBtn.addEventListener("click", restartQuiz);
   }
 
   init();

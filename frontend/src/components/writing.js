@@ -1,7 +1,9 @@
+import { auth } from "../../../backend/config/firebase-config.js";
+
 export function initializeWriting() {
   // --- CONFIGURATION ---
-  const API_BASE_URL = 'http://localhost:5000/api/writing';
-  
+  const API_BASE_URL = "http://localhost:5000/api/writing";
+
   // --- ELEMENTS DOM ---
   const dom = {
     sourceWord: document.getElementById("sourceWord"),
@@ -20,7 +22,7 @@ export function initializeWriting() {
     nextBtn: document.getElementById("nextBtn"),
     feedback: document.getElementById("feedback"),
     hintSection: document.getElementById("hintSection"),
-    modeSelector: document.querySelector(".writing-mode-selector"), 
+    modeSelector: document.querySelector(".writing-mode-selector"),
     timePressure: document.getElementById("timePressure"),
     timer: document.getElementById("timer"),
     streakCount: document.getElementById("streakCount"),
@@ -40,11 +42,16 @@ export function initializeWriting() {
     errorMessage: document.getElementById("errorMessage"),
   };
 
+  const correctSound = new Audio("/frontend/public/assets/sound/correct.mp3");
+  const incorrectSound = new Audio(
+    "/frontend/public/assets/sound/incorrect.mp3"
+  );
+
   // --- GAME STATE ---
   let state = {
     currentWordIndex: -1,
     currentWord: null,
-    mode: "standard", 
+    mode: "standard",
     stats: { correct: 0, total: 0, streak: 0, totalTime: 0, answersCount: 0 },
     timerInterval: null,
     timeLeft: 30,
@@ -60,28 +67,28 @@ export function initializeWriting() {
     try {
       state.isLoading = true;
       showLoading(true);
-      
+
       const params = new URLSearchParams();
-      if (level) params.append('level', level);
-      if (difficulty) params.append('difficulty', difficulty);
-      if (limit) params.append('limit', limit);
-      
+      if (level) params.append("level", level);
+      if (difficulty) params.append("difficulty", difficulty);
+      if (limit) params.append("limit", limit);
+
       const response = await fetch(`${API_BASE_URL}/words?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch words');
+        throw new Error(data.message || "Failed to fetch words");
       }
-      
+
       return data.data;
     } catch (error) {
-      console.error('Error fetching words:', error);
-      showError('Błąd podczas pobierania słów. Spróbuj ponownie.');
+      console.error("Error fetching words:", error);
+      showError("Błąd podczas pobierania słów. Spróbuj ponownie.");
       return [];
     } finally {
       state.isLoading = false;
@@ -92,24 +99,24 @@ export function initializeWriting() {
   async function fetchRandomWord(level = null, difficulty = null) {
     try {
       const params = new URLSearchParams();
-      if (level) params.append('level', level);
-      if (difficulty) params.append('difficulty', difficulty);
-      
+      if (level) params.append("level", level);
+      if (difficulty) params.append("difficulty", difficulty);
+
       const response = await fetch(`${API_BASE_URL}/words/random?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch random word');
+        throw new Error(data.message || "Failed to fetch random word");
       }
-      
+
       return data.data;
     } catch (error) {
-      console.error('Error fetching random word:', error);
+      console.error("Error fetching random word:", error);
       return null;
     }
   }
@@ -117,29 +124,29 @@ export function initializeWriting() {
   async function checkAnswerWithBackend(wordId, userAnswer) {
     try {
       const response = await fetch(`${API_BASE_URL}/check-answer`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           wordId: wordId,
-          userAnswer: userAnswer
-        })
+          userAnswer: userAnswer,
+        }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
-        throw new Error(data.message || 'Failed to check answer');
+        throw new Error(data.message || "Failed to check answer");
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Error checking answer:', error);
+      console.error("Error checking answer:", error);
       return null;
     }
   }
@@ -147,49 +154,60 @@ export function initializeWriting() {
   async function fetchStats() {
     try {
       const response = await fetch(`${API_BASE_URL}/stats`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch stats');
+        throw new Error(data.message || "Failed to fetch stats");
       }
-      
+
       return data.data;
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
       return null;
     }
   }
 
   // --- MAIN LOGIC ---
   async function init() {
-    console.log('Initializing writing module...');
-    
+    console.log("Initializing writing module...");
+
     // Check if required DOM elements exist
-    const requiredElements = ['checkBtn', 'translationInput', 'sourceWord', 'feedback'];
-    const missingElements = requiredElements.filter(id => !dom[id]);
-    
+    const requiredElements = [
+      "checkBtn",
+      "translationInput",
+      "sourceWord",
+      "feedback",
+    ];
+    const missingElements = requiredElements.filter((id) => !dom[id]);
+
     if (missingElements.length > 0) {
       console.error(
-        `Błąd inicjalizacji: Nie znaleziono elementów DOM: ${missingElements.join(', ')}. 
+        `Błąd inicjalizacji: Nie znaleziono elementów DOM: ${missingElements.join(
+          ", "
+        )}. 
          Upewnij się, że HTML zawiera wszystkie wymagane elementy.`
       );
-      showError(`Błąd inicjalizacji: Brakuje elementów HTML: ${missingElements.join(', ')}`);
+      showError(
+        `Błąd inicjalizacji: Brakuje elementów HTML: ${missingElements.join(
+          ", "
+        )}`
+      );
       return;
     }
 
-    console.log('DOM elements found, fetching words...');
-    
+    console.log("DOM elements found, fetching words...");
+
     // Load initial words from backend
     const words = await fetchWords();
-    
+
     if (words.length === 0) {
-      console.error('No words fetched from backend');
-      showError('Nie udało się załadować słów. Sprawdź połączenie z serwerem.');
+      console.error("No words fetched from backend");
+      showError("Nie udało się załadować słów. Sprawdź połączenie z serwerem.");
       return;
     }
 
@@ -199,22 +217,22 @@ export function initializeWriting() {
     state.wordDataWithProgress = words.map((word) => ({
       _id: word._id,
       word: word.word,
-      pronunciation: word.pronunciation || '',
-      context: word.context || '',
-      type: word.type || '',
-      level: word.level || '',
-      frequency: word.frequency || '',
+      pronunciation: word.pronunciation || "",
+      context: word.context || "",
+      type: word.type || "",
+      level: word.level || "",
+      frequency: word.frequency || "",
       translations: word.translations || [],
       hints: word.hints || [],
-      difficulty: word.difficulty || '',
+      difficulty: word.difficulty || "",
       mastery: 0,
       lastAnswerCorrect: true,
     }));
 
-    console.log('Words transformed, adding event listeners...');
+    console.log("Words transformed, adding event listeners...");
     addEventListeners();
-    
-    console.log('Loading first word...');
+
+    console.log("Loading first word...");
     await loadNextWord();
   }
 
@@ -223,19 +241,19 @@ export function initializeWriting() {
     if (dom.checkBtn) {
       dom.checkBtn.addEventListener("click", checkAnswer);
     }
-    
+
     if (dom.nextBtn) {
       dom.nextBtn.addEventListener("click", loadNextWord);
     }
-    
+
     if (dom.hintBtn) {
       dom.hintBtn.addEventListener("click", showHint);
     }
-    
+
     if (dom.skipBtn) {
       dom.skipBtn.addEventListener("click", skipWord);
     }
-    
+
     if (dom.translationInput) {
       dom.translationInput.addEventListener("input", updateInputFeedback);
       dom.translationInput.addEventListener("keydown", (e) => {
@@ -268,46 +286,52 @@ export function initializeWriting() {
   }
 
   async function loadNextWord() {
-    console.log('Loading next word...');
-    
+    console.log("Loading next word...");
+
     if (state.wordDataWithProgress.length === 0) {
-      console.log('No words available, fetching more...');
+      console.log("No words available, fetching more...");
       // Try to fetch more words if we run out
-      const newWords = await fetchWords(state.selectedLevel, state.selectedDifficulty);
-      
+      const newWords = await fetchWords(
+        state.selectedLevel,
+        state.selectedDifficulty
+      );
+
       if (newWords.length === 0) {
-        console.log('No more words available, showing final score');
+        console.log("No more words available, showing final score");
         showFinalScore();
         return;
       }
-      
+
       // Add new words to the existing array
       const transformedWords = newWords.map((word) => ({
         _id: word._id,
         word: word.word,
-        pronunciation: word.pronunciation || '',
-        context: word.context || '',
-        type: word.type || '',
-        level: word.level || '',
-        frequency: word.frequency || '',
+        pronunciation: word.pronunciation || "",
+        context: word.context || "",
+        type: word.type || "",
+        level: word.level || "",
+        frequency: word.frequency || "",
         translations: word.translations || [],
         hints: word.hints || [],
-        difficulty: word.difficulty || '',
+        difficulty: word.difficulty || "",
         mastery: 0,
         lastAnswerCorrect: true,
       }));
-      
-      state.wordDataWithProgress = [...state.wordDataWithProgress, ...transformedWords];
+
+      state.wordDataWithProgress = [
+        ...state.wordDataWithProgress,
+        ...transformedWords,
+      ];
     }
 
     // Sort by mastery to prioritize difficult words
     state.wordDataWithProgress.sort((a, b) => a.mastery - b.mastery);
     state.currentWord = state.wordDataWithProgress[0];
 
-    console.log('Current word:', state.currentWord);
+    console.log("Current word:", state.currentWord);
 
     const word = state.currentWord;
-    
+
     // Update DOM elements with null checks
     if (dom.sourceWord) dom.sourceWord.textContent = word.word;
     if (dom.pronunciation) dom.pronunciation.textContent = word.pronunciation;
@@ -321,24 +345,24 @@ export function initializeWriting() {
 
     if (state.mode === "timed") startTimer();
     state.startTime = Date.now();
-    
-    console.log('Word loaded successfully');
+
+    console.log("Word loaded successfully");
   }
 
   // --- ANSWER CHECKING AND FEEDBACK ---
   async function checkAnswer() {
-    console.log('Checking answer...');
-    
+    console.log("Checking answer...");
+
     clearInterval(state.timerInterval);
-    
+
     if (!dom.translationInput) {
-      console.error('Translation input not found');
+      console.error("Translation input not found");
       return;
     }
-    
+
     const userInput = dom.translationInput.value.trim();
     if (userInput.length === 0) {
-      console.log('Empty input, skipping check');
+      console.log("Empty input, skipping check");
       return;
     }
 
@@ -346,20 +370,27 @@ export function initializeWriting() {
     state.stats.totalTime += (Date.now() - state.startTime) / 1000;
     state.stats.answersCount++;
 
-    console.log('User input:', userInput);
-    console.log('Checking with backend...');
+    console.log("User input:", userInput);
+    console.log("Checking with backend...");
 
     // Use backend to check answer
-    const result = await checkAnswerWithBackend(state.currentWord._id, userInput);
-    
+    const result = await checkAnswerWithBackend(
+      state.currentWord._id,
+      userInput
+    );
+
     if (result) {
-      console.log('Backend result:', result);
+      console.log("Backend result:", result);
       // Use backend result
       if (result.correct) {
         state.stats.correct++;
         state.stats.streak++;
-        state.currentWord.mastery = Math.min(100, state.currentWord.mastery + 25);
+        state.currentWord.mastery = Math.min(
+          100,
+          state.currentWord.mastery + 25
+        );
         showFeedback(true, result.feedback);
+        await updateUserStats();
       } else {
         state.stats.streak = 0;
         state.currentWord.mastery = Math.max(0, state.currentWord.mastery - 20);
@@ -370,35 +401,104 @@ export function initializeWriting() {
         }
       }
     } else {
-      console.log('Backend check failed, using fallback');
+      console.log("Backend check failed, using fallback");
       // Fallback to frontend checking if backend fails
-      const correctAnswers = state.currentWord.translations.map((t) => t.toLowerCase());
+      const correctAnswers = state.currentWord.translations.map((t) =>
+        t.toLowerCase()
+      );
       const userInputLower = userInput.toLowerCase();
-      
+
       if (correctAnswers.includes(userInputLower)) {
         state.stats.correct++;
         state.stats.streak++;
-        state.currentWord.mastery = Math.min(100, state.currentWord.mastery + 25);
+        state.currentWord.mastery = Math.min(
+          100,
+          state.currentWord.mastery + 25
+        );
         showFeedback(true, `Doskonale!`);
       } else {
         state.stats.streak = 0;
         state.currentWord.mastery = Math.max(0, state.currentWord.mastery - 20);
         const similarity = getHighestSimilarity(userInputLower, correctAnswers);
         if (similarity > 0.7) {
-          showFeedback("partial", `Prawie dobrze! Sprawdź pisownię.`, state.currentWord.translations);
+          showFeedback(
+            "partial",
+            `Prawie dobrze! Sprawdź pisownię.`,
+            state.currentWord.translations
+          );
         } else {
-          showFeedback(false, `Niestety, to nie to.`, state.currentWord.translations);
+          showFeedback(
+            false,
+            `Niestety, to nie to.`,
+            state.currentWord.translations
+          );
         }
       }
     }
-    
+
     updateUIafterAnswer();
     updateStatsUI();
   }
 
+  async function updateUserStats() {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("Brak uwierzytelnionego użytkownika");
+      return;
+    }
+
+    try {
+      // Update daily goal
+      const dailyProgressResponse = await fetch(
+        `http://localhost:5000/api/user/${user.uid}/update-daily-progress`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!dailyProgressResponse.ok) {
+        throw new Error("Nie udało się zaktualizować celu dziennego");
+      }
+
+      const dailyProgressData = await dailyProgressResponse.json();
+      console.log("Cel dzienny zaktualizowany:", dailyProgressData);
+
+      // Update general statistics (1 correct answer)
+      const overallStatsResponse = await fetch(
+        `http://localhost:5000/api/user/${user.uid}/update-overall-stats`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            correctAnswers: 1,
+            incorrectAnswers: 0,
+          }),
+        }
+      );
+
+      if (!overallStatsResponse.ok) {
+        throw new Error("Nie udało się zaktualizować ogólnych statystyk");
+      }
+
+      console.log("Ogólne statystyki zaktualizowane");
+
+      // Show notification if goal is achievedy
+      if (dailyProgressData.goalJustAchieved) {
+        showGoalAchievedNotification(dailyProgressData.streak);
+      }
+    } catch (error) {
+      console.error("Błąd aktualizacji statystyk:", error);
+    }
+  }
+
   // --- SKIP AND HINT FUNCTIONS ---
   function skipWord() {
-    console.log('Skipping word...');
+    console.log("Skipping word...");
     clearInterval(state.timerInterval);
     state.stats.total++;
     state.stats.streak = 0;
@@ -409,21 +509,21 @@ export function initializeWriting() {
   }
 
   function showHint() {
-    console.log('Showing hint...');
+    console.log("Showing hint...");
     const { hints, mastery } = state.currentWord;
     if (!hints || hints.length === 0) {
-      console.log('No hints available');
+      console.log("No hints available");
       return;
     }
-    
+
     if (!dom.hintSection) {
-      console.error('Hint section not found');
+      console.error("Hint section not found");
       return;
     }
-    
+
     const existingHintsCount = dom.hintSection.querySelectorAll(".hint").length;
     if (existingHintsCount >= hints.length) {
-      console.log('All hints already shown');
+      console.log("All hints already shown");
       return;
     }
 
@@ -440,7 +540,7 @@ export function initializeWriting() {
 
   // --- MODE CHANGE AND TIMER FUNCTIONS ---
   async function changeMode(newMode) {
-    console.log('Changing mode to:', newMode);
+    console.log("Changing mode to:", newMode);
     if (state.mode === newMode) return;
     state.mode = newMode;
 
@@ -451,7 +551,7 @@ export function initializeWriting() {
   }
 
   function startTimer() {
-    console.log('Starting timer...');
+    console.log("Starting timer...");
     state.timeLeft = 30;
     if (dom.timer) dom.timer.textContent = state.timeLeft;
     if (dom.timePressure) dom.timePressure.classList.add("active");
@@ -466,14 +566,14 @@ export function initializeWriting() {
   }
 
   function timeUp() {
-    console.log('Time up!');
+    console.log("Time up!");
     showFeedback(false, "Czas minął!", state.currentWord.translations);
     updateUIafterAnswer();
     updateStatsUI();
   }
 
   async function resetGame() {
-    console.log('Resetting game...');
+    console.log("Resetting game...");
     clearInterval(state.timerInterval);
     state.stats = {
       correct: 0,
@@ -482,30 +582,33 @@ export function initializeWriting() {
       totalTime: 0,
       answersCount: 0,
     };
-    
+
     // Reset mastery for existing words
     state.wordDataWithProgress.forEach((word) => (word.mastery = 0));
-    
+
     // Reload words from backend
-    const words = await fetchWords(state.selectedLevel, state.selectedDifficulty);
-    
+    const words = await fetchWords(
+      state.selectedLevel,
+      state.selectedDifficulty
+    );
+
     if (words.length > 0) {
       state.wordDataWithProgress = words.map((word) => ({
         _id: word._id,
         word: word.word,
-        pronunciation: word.pronunciation || '',
-        context: word.context || '',
-        type: word.type || '',
-        level: word.level || '',
-        frequency: word.frequency || '',
+        pronunciation: word.pronunciation || "",
+        context: word.context || "",
+        type: word.type || "",
+        level: word.level || "",
+        frequency: word.frequency || "",
         translations: word.translations || [],
         hints: word.hints || [],
-        difficulty: word.difficulty || '',
+        difficulty: word.difficulty || "",
         mastery: 0,
         lastAnswerCorrect: true,
       }));
     }
-    
+
     if (dom.timePressure) dom.timePressure.classList.remove("active");
     await loadNextWord();
   }
@@ -516,34 +619,34 @@ export function initializeWriting() {
       dom.feedback.style.display = "none";
       dom.feedback.className = "feedback";
     }
-    
+
     if (dom.translationInput) {
       dom.translationInput.value = "";
       dom.translationInput.disabled = false;
       dom.translationInput.focus();
     }
-    
+
     if (dom.hintSection) {
       dom.hintSection.innerHTML = "";
     }
-    
+
     if (dom.checkBtn) {
       dom.checkBtn.style.display = "inline-block";
     }
-    
+
     if (dom.hintBtn) {
       dom.hintBtn.style.display = "inline-block";
       dom.hintBtn.disabled = state.mode === "hardcore";
     }
-    
+
     if (dom.skipBtn) {
       dom.skipBtn.style.display = "inline-block";
     }
-    
+
     if (dom.nextBtn) {
       dom.nextBtn.style.display = "none";
     }
-    
+
     updateInputFeedback();
   }
 
@@ -551,19 +654,19 @@ export function initializeWriting() {
     if (dom.translationInput) {
       dom.translationInput.disabled = true;
     }
-    
+
     if (dom.checkBtn) {
       dom.checkBtn.style.display = "none";
     }
-    
+
     if (dom.hintBtn) {
       dom.hintBtn.style.display = "none";
     }
-    
+
     if (dom.skipBtn) {
       dom.skipBtn.style.display = "none";
     }
-    
+
     if (dom.nextBtn) {
       dom.nextBtn.style.display = "inline-block";
       dom.nextBtn.focus();
@@ -573,10 +676,10 @@ export function initializeWriting() {
   // --- FEEDBACK AND STATISTICS FUNCTIONS ---
   function showFeedback(type, message, correctAnswers = []) {
     if (!dom.feedback) {
-      console.error('Feedback element not found');
+      console.error("Feedback element not found");
       return;
     }
-    
+
     dom.feedback.style.display = "block";
     dom.feedback.innerHTML = "";
     const messageElement = document.createElement("span");
@@ -593,64 +696,151 @@ export function initializeWriting() {
         ", "
       )}</div>`;
       dom.feedback.appendChild(detailedFeedback);
+
     }
+  }
+
+  function showGoalAchievedNotification(streak) {
+    const notification = document.createElement("div");
+    notification.className = "goal-achieved-notification";
+    notification.innerHTML = `
+    <div class="notification-content">
+      <div class="notification-icon">🎉</div>
+      <div class="notification-text">
+        <h3>Cel dzienny osiągnięty!</h3>
+        <p>Gratulacje! Twoja passa: ${streak} dni</p>
+      </div>
+    </div>
+  `;
+
+    notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    max-width: 300px;
+  `;
+
+    if (!document.getElementById("notification-styles")) {
+      const styles = document.createElement("style");
+      styles.id = "notification-styles";
+      styles.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .notification-icon {
+        font-size: 2em;
+      }
+      .notification-text h3 {
+        margin: 0 0 5px 0;
+        font-size: 1.2em;
+      }
+      .notification-text p {
+        margin: 0;
+        font-size: 0.9em;
+        opacity: 0.9;
+      }
+    `;
+      document.head.appendChild(styles);
+    }
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.animation = "slideIn 0.3s ease-out reverse";
+      setTimeout(() => notification.remove(), 300);
+    }, 4000);
   }
 
   function updateStatsUI() {
     if (dom.correctCount) dom.correctCount.textContent = state.stats.correct;
     if (dom.totalCount) dom.totalCount.textContent = state.stats.total;
     if (dom.streakCount) dom.streakCount.textContent = state.stats.streak;
-    
-    const accuracy = state.stats.total > 0 ? Math.round((state.stats.correct / state.stats.total) * 100) : 0;
+
+    const accuracy =
+      state.stats.total > 0
+        ? Math.round((state.stats.correct / state.stats.total) * 100)
+        : 0;
     if (dom.accuracy) dom.accuracy.textContent = `${accuracy}%`;
-    
-    const avgTime = state.stats.answersCount > 0 ? (state.stats.totalTime / state.stats.answersCount).toFixed(1) : 0;
+
+    const avgTime =
+      state.stats.answersCount > 0
+        ? (state.stats.totalTime / state.stats.answersCount).toFixed(1)
+        : 0;
     if (dom.avgTime) dom.avgTime.textContent = `${avgTime}s`;
-    
-    const totalMastery = state.wordDataWithProgress.reduce((sum, word) => sum + word.mastery, 0);
+
+    const totalMastery = state.wordDataWithProgress.reduce(
+      (sum, word) => sum + word.mastery,
+      0
+    );
     const maxMastery = state.wordDataWithProgress.length * 100;
-    const masteryPercentage = maxMastery > 0 ? Math.round((totalMastery / maxMastery) * 100) : 0;
-    
-    if (dom.masteryLevel) dom.masteryLevel.textContent = `${masteryPercentage}%`;
+    const masteryPercentage =
+      maxMastery > 0 ? Math.round((totalMastery / maxMastery) * 100) : 0;
+
+    if (dom.masteryLevel)
+      dom.masteryLevel.textContent = `${masteryPercentage}%`;
     if (dom.masteryBar) dom.masteryBar.style.width = `${masteryPercentage}%`;
-    
-    const reviewCount = state.wordDataWithProgress.filter((word) => word.mastery < 80).length;
+
+    const reviewCount = state.wordDataWithProgress.filter(
+      (word) => word.mastery < 80
+    ).length;
     if (dom.reviewWords) dom.reviewWords.textContent = reviewCount;
   }
 
   function updateInputFeedback() {
     if (!state.currentWord || !dom.translationInput) return;
-    
+
     const userInput = dom.translationInput.value;
     const correctAnswers = state.currentWord.translations;
-    
+
     if (dom.charCount) dom.charCount.textContent = userInput.length;
     if (dom.expectedLength && correctAnswers.length > 0) {
       dom.expectedLength.textContent = correctAnswers[0].length;
     }
-    
+
     if (userInput.length > 0 && correctAnswers.length > 0) {
       const similarity = getHighestSimilarity(userInput, correctAnswers);
       const percentage = Math.round(similarity * 100);
-      
+
       if (dom.similarityMeter) {
         dom.similarityMeter.classList.add("show");
       }
-      
+
       if (dom.similarityFill) {
         dom.similarityFill.style.width = `${percentage}%`;
       }
-      
+
       if (dom.similarityText) {
         dom.similarityText.textContent = `Podobieństwo: ${percentage}%`;
       }
-      
+
       if (percentage > 70 && percentage < 100) {
         if (dom.typoIndicator) {
           dom.typoIndicator.classList.add("show");
         }
         if (dom.typoText) {
-          dom.typoText.textContent = `Czy chodziło Ci o: ${findClosestAnswer(userInput, correctAnswers)}?`;
+          dom.typoText.textContent = `Czy chodziło Ci o: ${findClosestAnswer(
+            userInput,
+            correctAnswers
+          )}?`;
         }
       } else {
         if (dom.typoIndicator) {
@@ -675,7 +865,7 @@ export function initializeWriting() {
   }
 
   function showError(message) {
-    console.error('Error:', message);
+    console.error("Error:", message);
     if (dom.errorMessage) {
       dom.errorMessage.textContent = message;
       dom.errorMessage.style.display = "block";
@@ -689,7 +879,7 @@ export function initializeWriting() {
 
   // --- FINAL SCORE DISPLAY ---
   function showFinalScore() {
-    console.log('Showing final score');
+    console.log("Showing final score");
     const wordSection = document.getElementById("word-section-id");
     if (wordSection) {
       wordSection.innerHTML = `
@@ -730,13 +920,18 @@ export function initializeWriting() {
 
   function getHighestSimilarity(input, answers) {
     if (!answers || answers.length === 0) return 0;
-    return Math.max(...answers.map((answer) => getSimilarity(input.toLowerCase(), answer.toLowerCase())));
+    return Math.max(
+      ...answers.map((answer) =>
+        getSimilarity(input.toLowerCase(), answer.toLowerCase())
+      )
+    );
   }
 
   function findClosestAnswer(input, answers) {
-    if (!answers || answers.length === 0) return '';
+    if (!answers || answers.length === 0) return "";
     return answers.reduce((best, current) =>
-      getSimilarity(input.toLowerCase(), current.toLowerCase()) > getSimilarity(input.toLowerCase(), best.toLowerCase())
+      getSimilarity(input.toLowerCase(), current.toLowerCase()) >
+      getSimilarity(input.toLowerCase(), best.toLowerCase())
         ? current
         : best
     );
@@ -757,10 +952,10 @@ export function initializeWriting() {
   };
 
   // Initialize the game
-  init().catch(error => {
-    console.error('Failed to initialize writing module:', error);
-    showError('Nie udało się zainicjalizować modułu pisania.');
+  init().catch((error) => {
+    console.error("Failed to initialize writing module:", error);
+    showError("Nie udało się zainicjalizować modułu pisania.");
   });
-  
+
   return api;
 }

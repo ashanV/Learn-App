@@ -3128,6 +3128,11 @@ h2 {
 
 .results-header {
   margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: fadeInUp 0.5s ease-out;
 }
 
 .results-header h2 {
@@ -3181,6 +3186,7 @@ h2 {
   gap: 20px;
   margin-bottom: 40px;
   padding: 0 20px;
+  animation: fadeInUp 0.5s ease-out;
 }
 
 .result-stat {
