@@ -192,7 +192,11 @@ async function loadDashboardData(user) {
 
     const data = await response.json();
 
-    if (userNameEl) userNameEl.textContent = user.displayName || "Użytkowniku";
+    if (userNameEl) {
+      const displayName = data.user.profile?.displayName || data.user.username || "Użytkowniku";
+      userNameEl.textContent = displayName;
+    }
+    
     if (overallAccuracyEl)
       overallAccuracyEl.textContent = `🎯 ${data.user.overallAccuracy}%`;
     if (masteredWordsEl)

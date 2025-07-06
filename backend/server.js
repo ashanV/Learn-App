@@ -34,9 +34,6 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-
-
-
 // API routes
 app.use("/api/quiz", quizRoutes);
 app.use("/api/writing", writingRoutes);
@@ -44,31 +41,61 @@ app.use("/api/writing", writingRoutes);
 // User registration
 app.post("/api/register", async (req, res) => {
   try {
-    const { firebaseUid, email } = req.body;
+    const { firebaseUid, username, email } = req.body;
 
-    if (!firebaseUid || !email) {
+    if (!firebaseUid || !username || !email) {
       return res.status(400).json({
-        message: "Firebase UID i email są wymagane",
+        message: "Firebase UID, nazwa użytkownika i email są wymagane",
+      });
+    }
+
+    // Validate username
+    if (username.length < 3) {
+      return res.status(400).json({
+        message: "Nazwa użytkownika musi mieć co najmniej 3 znaki",
+      });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({
+        message:
+          "Nazwa użytkownika może zawierać tylko litery, cyfry i podkreślenia",
       });
     }
 
     // Check if the user already exists
     const existingUser = await User.findOne({
-      $or: [{ firebaseUid }, { email }],
+      $or: [{ firebaseUid }, { email }, { username: username.toLowerCase() }],
     });
 
     if (existingUser) {
-      return res.status(409).json({
-        message: "Użytkownik już istnieje",
-      });
+      if (existingUser.firebaseUid === firebaseUid) {
+        return res.status(409).json({
+          message: "Użytkownik już istnieje",
+        });
+      }
+      if (existingUser.email === email) {
+        return res.status(409).json({
+          message: "Ten adres email jest już zarejestrowany",
+        });
+      }
+      if (existingUser.username === username.toLowerCase()) {
+        return res.status(409).json({
+          message: "Ta nazwa użytkownika jest już zajęta",
+        });
+      }
     }
 
     // Create new user
     const newUser = new User({
       firebaseUid,
+      username: username.toLowerCase(),
       email,
       createdAt: new Date(),
       lastLogin: new Date(),
+      profile: {
+        displayName: username,
+      },
       learningPreferences: {
         selectedLanguage: null,
         languageSetAt: null,
@@ -81,14 +108,76 @@ app.post("/api/register", async (req, res) => {
       message: "Użytkownik został utworzony pomyślnie",
       user: {
         id: newUser._id,
+        username: newUser.username,
         email: newUser.email,
         createdAt: newUser.createdAt,
       },
     });
   } catch (error) {
     console.error("Błąd rejestracji:", error);
+
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      const message =
+        field === "username"
+          ? "Ta nazwa użytkownika jest już zajęta"
+          : field === "email"
+          ? "Ten adres email jest już zarejestrowany"
+          : "Użytkownik już istnieje";
+
+      return res.status(409).json({ message });
+    }
+
     res.status(500).json({
       message: "Błąd serwera podczas rejestracji",
+    });
+  }
+});
+
+app.post("/api/check-username", async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({
+        message: "Nazwa użytkownika jest wymagana",
+      });
+    }
+
+    // Validate username format
+    if (username.length < 3) {
+      return res.status(400).json({
+        message: "Nazwa użytkownika musi mieć co najmniej 3 znaki",
+      });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({
+        message:
+          "Nazwa użytkownika może zawierać tylko litery, cyfry i podkreślenia",
+      });
+    }
+
+    // Check if username exists
+    const user = await User.findOne({
+      username: username.toLowerCase(),
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Nazwa użytkownika jest dostępna",
+      });
+    }
+
+    res.status(200).json({
+      message: "Nazwa użytkownika jest już zajęta",
+      exists: true,
+    });
+  } catch (error) {
+    console.error("Błąd sprawdzania nazwy użytkownika:", error);
+    res.status(500).json({
+      message: "Błąd serwera podczas sprawdzania nazwy użytkownika",
     });
   }
 });
@@ -570,13 +659,14 @@ app.get("/api/user/:firebaseUid", async (req, res) => {
     res.status(200).json({
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
         createdAt: user.createdAt,
         lastLogin: user.lastLogin,
         profile: user.profile,
         learningPreferences: user.learningPreferences,
         overallAccuracy: overallAccuracy,
-        masteredWords: user.overallStats?.totalCorrectAnswers || 0
+        masteredWords: user.overallStats?.totalCorrectAnswers || 0,
       },
     });
   } catch (error) {

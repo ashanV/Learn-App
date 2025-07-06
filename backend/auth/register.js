@@ -2,8 +2,10 @@ import { auth } from "../config/firebase-config.js";
 import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 import {
   checkEmailExists,
+  checkUsernameExists,
   validatePassword,
   validateEmail,
+  validateUsername,
 } from "./auth-utlis.js";
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -13,6 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     registerForm.addEventListener("submit", async function (e) {
       e.preventDefault();
 
+      const username = document.getElementById("register-username").value;
       const email = document.getElementById("register-email").value;
       const password = document.getElementById("register-password").value;
       const confirmPassword = document.getElementById(
@@ -21,8 +24,15 @@ document.addEventListener("DOMContentLoaded", function () {
       const termsAccepted = document.getElementById("terms").checked;
 
       // Form validation
-      if (!email || !password || !confirmPassword) {
+      if (!username || !email || !password || !confirmPassword) {
         showMessage("Wszystkie pola są wymagane!", "error");
+        return;
+      }
+
+      // Username validation
+      const usernameValidation = validateUsername(username);
+      if (!usernameValidation.isValid) {
+        showMessage(usernameValidation.errors[0], "error");
         return;
       }
 
@@ -44,6 +54,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!termsAccepted) {
         showMessage("Musisz zaakceptować regulamin!", "error");
+        return;
+      }
+
+      // Check if username already exists
+      const usernameExists = await checkUsernameExists(username);
+      if (usernameExists) {
+        showMessage(
+          "Ta nazwa użytkownika jest już zajęta. Wybierz inną.",
+          "error"
+        );
         return;
       }
 
@@ -76,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Sending data to MongoDB server
         console.log("Wysyłanie danych do serwera:", {
           firebaseUid: firebaseUser.uid,
+          username: username,
           email: firebaseUser.email,
         });
 
@@ -86,6 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
           },
           body: JSON.stringify({
             firebaseUid: firebaseUser.uid,
+            username: username,
             email: firebaseUser.email,
           }),
         });
@@ -94,10 +116,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (response.ok) {
           showMessage("Rejestracja zakończona pomyślnie!", "success");
-          
+
           // Save firebase Uid in local storage as per language page
           localStorage.setItem("tempFirebaseUid", firebaseUser.uid);
-          
+
           setTimeout(() => {
             window.location.href = "./language.html";
           }, 2000);
@@ -143,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
         submitButton.textContent = "Zarejestruj się";
       }
     });
-    
+
     const togglePasswordButton = document.querySelector(".password-toggle");
     if (togglePasswordButton) {
       togglePasswordButton.addEventListener("click", function () {
