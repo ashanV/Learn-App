@@ -21,8 +21,18 @@ const userSchema = new mongoose.Schema({
     maxlength: 20,
   },
   profile: {
-    displayName: String,
-    photoURL: String,
+    displayName: {
+      type: String,
+      default: "",
+    },
+    photoURL: {
+      type: String,
+      default: null,
+    },
+    avatarUpdatedAt: {
+      type: Date,
+      default: null,
+    },
   },
   learningPreferences: {
     selectedLanguage: {
