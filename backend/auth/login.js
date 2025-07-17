@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error("Błąd aktualizacji użytkownika:", errorMessage);
           showMessage("Logowanie pomyślne!", "success");
           setTimeout(() => {
-            window.location.href = ".";
+            window.location.href = "/frontend/public/dashboard.html";
           }, 1500);
         }
       } catch (error) {
