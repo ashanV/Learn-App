@@ -1,5 +1,10 @@
 import { auth } from "../../../backend/config/firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import {
+  onAuthStateChanged,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
 // Cloudinary Configuration
 const CLOUDINARY_CONFIG = {
@@ -156,6 +161,199 @@ function getInitials(name) {
   }
 
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+// Function to check password strength
+function checkPasswordStrength() {
+  const passwordInput = document.getElementById("newPassword");
+  const strengthBar = document.getElementById("passwordStrengthBar");
+
+  if (!passwordInput || !strengthBar) return;
+
+  const password = passwordInput.value;
+  let strength = 0;
+  let strengthText = "";
+  let strengthColor = "";
+
+  if (password.length >= 6) strength += 1;
+  if (password.length >= 8) strength += 1;
+  if (/[A-Z]/.test(password)) strength += 1;
+  if (/[a-z]/.test(password)) strength += 1;
+  if (/[0-9]/.test(password)) strength += 1;
+  if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+  switch (strength) {
+    case 0:
+    case 1:
+      strengthText = "Bardzo słabe";
+      strengthColor = "#ff4444";
+      break;
+    case 2:
+    case 3:
+      strengthText = "Słabe";
+      strengthColor = "#ff8800";
+      break;
+    case 4:
+      strengthText = "Średnie";
+      strengthColor = "#ffaa00";
+      break;
+    case 5:
+      strengthText = "Silne";
+      strengthColor = "#88cc00";
+      break;
+    case 6:
+      strengthText = "Bardzo silne";
+      strengthColor = "#00cc44";
+      break;
+  }
+
+  const strengthPercent = (strength / 6) * 100;
+  strengthBar.style.width = strengthPercent + "%";
+  strengthBar.style.backgroundColor = strengthColor;
+  strengthBar.textContent = strengthText;
+}
+
+// Function to validate password change form
+function validatePasswordChange() {
+  const currentPassword = document
+    .getElementById("currentPassword")
+    ?.value.trim();
+  const newPassword = document.getElementById("newPassword")?.value.trim();
+  const confirmNewPassword = document
+    .getElementById("confirmNewPassword")
+    ?.value.trim();
+
+  // Check if any password field is filled
+  const hasPasswordFields =
+    currentPassword || newPassword || confirmNewPassword;
+
+  if (!hasPasswordFields) {
+    return { isValid: true, shouldChangePassword: false };
+  }
+
+  // If any password field is filled, all must be filled
+  if (!currentPassword) {
+    throw new Error("Aktualne hasło jest wymagane");
+  }
+
+  if (!newPassword) {
+    throw new Error("Nowe hasło jest wymagane");
+  }
+
+  if (!confirmNewPassword) {
+    throw new Error("Potwierdzenie nowego hasła jest wymagane");
+  }
+
+  // Validate new password strength
+  if (newPassword.length < 6) {
+    throw new Error("Nowe hasło musi mieć co najmniej 6 znaków");
+  }
+
+  // Check if passwords match
+  if (newPassword !== confirmNewPassword) {
+    throw new Error("Nowe hasła nie są identyczne");
+  }
+
+  // Check if new password is different from current
+  if (currentPassword === newPassword) {
+    throw new Error("Nowe hasło musi być różne od aktualnego");
+  }
+
+  return { isValid: true, shouldChangePassword: true };
+}
+
+// Function to change user password
+async function changeUserPassword(currentPassword, newPassword) {
+  try {
+    let firebaseUid = getFirebaseUid();
+    if (!firebaseUid) {
+      firebaseUid = await waitForFirebaseAuth();
+    }
+
+    if (!firebaseUid) {
+      throw new Error("Brak identyfikatora użytkownika");
+    }
+
+    // Get current Firebase user
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("Użytkownik nie jest zalogowany w Firebase");
+    }
+
+    // Reauthenticate user with current password
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      currentPassword
+    );
+
+    try {
+      await reauthenticateWithCredential(user, credential);
+      console.log("Ponowne uwierzytelnienie zakończone sukcesem");
+    } catch (reauthError) {
+      console.error("Błąd ponownego uwierzytelnienia:", reauthError);
+      if (reauthError.code === "auth/wrong-password") {
+        throw new Error("Aktualne hasło jest nieprawidłowe");
+      } else if (reauthError.code === "auth/too-many-requests") {
+        throw new Error("Zbyt wiele prób. Spróbuj ponownie później");
+      } else {
+        throw new Error("Nie udało się zweryfikować aktualnego hasła");
+      }
+    }
+
+    // Update password in Firebase Auth
+    try {
+      await updatePassword(user, newPassword);
+      console.log("Hasło w Firebase Auth zaktualizowane pomyślnie");
+    } catch (updateError) {
+      console.error("Błąd aktualizacji hasła w Firebase:", updateError);
+      if (updateError.code === "auth/weak-password") {
+        throw new Error("Nowe hasło jest za słabe");
+      } else if (updateError.code === "auth/requires-recent-login") {
+        throw new Error("Wymagane ponowne zalogowanie. Zaloguj się ponownie");
+      } else {
+        throw new Error("Nie udało się zaktualizować hasła w Firebase");
+      }
+    }
+
+    // Update password in backend database
+    const response = await fetch(
+      `http://localhost:5000/api/user/${firebaseUid}/password`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      // If backend update fails, we should notify but Firebase password is already changed
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Backend update failed:", errorData);
+
+      // Still return success since Firebase password was updated
+      console.warn(
+        "Hasło w Firebase zostało zmienione, ale aktualizacja w bazie danych nie powiodła się"
+      );
+      return {
+        message:
+          "Hasło zostało zmienione, ale mogą wystąpić problemy z synchronizacją",
+        warning: true,
+      };
+    }
+
+    const data = await response.json();
+    console.log("Hasło zmienione pomyślnie w Firebase i bazie danych:", data);
+
+    return data;
+  } catch (error) {
+    console.error("Błąd podczas zmiany hasła:", error);
+    throw error;
+  }
 }
 
 // Function to upload a photo to Cloudinary
@@ -360,7 +558,7 @@ async function removeAvatar() {
   }
 }
 
-// Profile update function (extended)
+// Updated profile
 async function updateUserProfile() {
   try {
     let firebaseUid = getFirebaseUid();
@@ -383,38 +581,125 @@ async function updateUserProfile() {
       return;
     }
 
-    showLoadingMessage("Aktualizowanie profilu...");
-
-    const response = await fetch(
-      `http://localhost:5000/api/user/${firebaseUid}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          displayName: displayName,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
-      );
+    // Validate password change if password fields are filled
+    let passwordChangeData;
+    try {
+      passwordChangeData = validatePasswordChange();
+    } catch (passwordError) {
+      showErrorMessage(passwordError.message);
+      return;
     }
 
-    const data = await response.json();
-    console.log("Profil zaktualizowany pomyślnie:", data);
+    showLoadingMessage("Aktualizowanie profilu...");
 
-    showSuccessMessage("Profil został zaktualizowany pomyślnie");
+    let profileUpdated = false;
+    let passwordUpdated = false;
+
+    try {
+      // Update profile name
+      const profileResponse = await fetch(
+        `http://localhost:5000/api/user/${firebaseUid}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            displayName: displayName,
+          }),
+        }
+      );
+
+      if (!profileResponse.ok) {
+        const errorData = await profileResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `HTTP error! status: ${profileResponse.status}`
+        );
+      }
+
+      const profileData = await profileResponse.json();
+      console.log("Profil zaktualizowany pomyślnie:", profileData);
+      profileUpdated = true;
+
+      // Change password if requested
+      if (passwordChangeData.shouldChangePassword) {
+        const currentPassword = document
+          .getElementById("currentPassword")
+          .value.trim();
+        const newPassword = document.getElementById("newPassword").value.trim();
+
+        try {
+          const passwordResult = await changeUserPassword(
+            currentPassword,
+            newPassword
+          );
+          passwordUpdated = true;
+
+          if (passwordResult.warning) {
+            showSuccessMessage(
+              "Profil zaktualizowany. " + passwordResult.message
+            );
+          } else {
+            showSuccessMessage(
+              "Profil i hasło zostały zaktualizowane pomyślnie"
+            );
+          }
+        } catch (passwordError) {
+          console.error("Password change error:", passwordError);
+          showErrorMessage(
+            "Profil zaktualizowany, ale wystąpił błąd z hasłem: " +
+              passwordError.message
+          );
+          // Don't return here - still clear fields
+        }
+      } else {
+        showSuccessMessage("Profil został zaktualizowany pomyślnie");
+      }
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji profilu:", error);
+      showErrorMessage(error.message || "Nie udało się zaktualizować profilu");
+      return; // Don't clear fields on error
+    } finally {
+      hideLoadingMessage();
+    }
+
+    // Reset password fields only after successful operations
+    if (profileUpdated) {
+      resetPasswordFields();
+    }
   } catch (error) {
     console.error("Błąd podczas aktualizacji profilu:", error);
     showErrorMessage(error.message || "Nie udało się zaktualizować profilu");
-  } finally {
     hideLoadingMessage();
   }
+}
+
+// Function to reset password fields and strength indicator
+function resetPasswordFields() {
+  const currentPasswordInput = document.getElementById("currentPassword");
+  const newPasswordInput = document.getElementById("newPassword");
+  const confirmNewPasswordInput = document.getElementById("confirmNewPassword");
+  const strengthBar = document.getElementById("passwordStrengthBar");
+
+  if (currentPasswordInput) {
+    currentPasswordInput.value = "";
+  }
+
+  if (newPasswordInput) {
+    newPasswordInput.value = "";
+  }
+
+  if (confirmNewPasswordInput) {
+    confirmNewPasswordInput.value = "";
+  }
+
+  if (strengthBar) {
+    strengthBar.style.width = "0%";
+    strengthBar.style.backgroundColor = "";
+    strengthBar.textContent = "";
+  }
+
+  console.log("Pola hasła zostały zresetowane");
 }
 
 // Function to display error message
@@ -592,6 +877,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Password strength checker
+  const newPasswordInput = document.getElementById("newPassword");
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener("input", checkPasswordStrength);
+  }
+
   // Context menu on right click of the avatar
   const avatarPreview = document.getElementById("avatarPreview");
   if (avatarPreview) {
@@ -703,3 +994,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+// Make checkPasswordStrength globally available for inline oninput calls
+window.checkPasswordStrength = checkPasswordStrength;
