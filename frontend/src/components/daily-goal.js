@@ -93,7 +93,7 @@ export async function setCustomDailyGoal() {
 }
 
 // Function to update daily goal in database
-async function updateDailyGoal(newGoal) {
+ export async function updateDailyGoal(newGoal) {
   const currentUser = getCurrentUser();
   if (!currentUser) return;
 

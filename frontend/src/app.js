@@ -4,11 +4,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 import { auth } from "../../../backend/config/firebase-config.js";
 import { initializeFlashcard } from "./components/flashcard.js";
+import { initializeSettings } from "./components/settings.js";
+import { syncSettingsUI } from './components/settings.js';
 import "./modes.js";
 import "./components/profile.js";
 import {
   setDailyGoal,
   loadDailyStats,
+  updateDailyGoal,
   updateDailyProgress,
   setCustomDailyGoal,
   closeDailyGoalModal,
@@ -239,6 +242,108 @@ async function loadStatisticsPage(user) {
   }
 }
 
+// Makes changes to the treatment page
+
+async function saveSettings() {
+  // Checking if the user is logged in
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    showNotification("Musisz być zalogowany, aby zapisać ustawienia.", "error");
+    return;
+  }
+
+  // Finding the Daily Goal Slider
+  const dailyGoalSlider = document.getElementById("settingsDailyGoalSlider");
+  if (dailyGoalSlider) {
+    const newGoal = parseInt(dailyGoalSlider.value, 10);
+
+    // Calling an imported function that handles the target update logic
+    await updateDailyGoal(newGoal);
+  } else {
+    console.error("Nie znaleziono suwaka 'settingsDailyGoalSlider'.");
+  }
+  console.log("Ustawienia zostały zapisane.");
+}
+
+// Updates the displayed value next to the slider.
+
+function updateRangeValue(slider, outputId) {
+  const output = document.getElementById(outputId);
+  if (output) {
+    output.textContent = slider.value;
+  }
+}
+
+// Synchronizes the daily goal slider with the value retrieved from the database.
+
+async function syncDailyGoalSetting(uid) {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/user/${uid}/daily-stats`
+    );
+    const data = await response.json();
+
+    if (response.ok && data.dailyGoal) {
+      const dailyGoalSlider = document.getElementById(
+        "settingsDailyGoalSlider"
+      );
+      const dailyGoalValue = document.getElementById("daily-goal-value");
+      if (dailyGoalSlider) dailyGoalSlider.value = data.dailyGoal;
+      if (dailyGoalValue) dailyGoalValue.textContent = data.dailyGoal;
+    }
+  } catch (error) {
+    console.error("Błąd synchronizacji ustawienia celu dziennego:", error);
+  }
+}
+
+// Initialization logic after page load
+document.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Loading statistics on the main dashboard
+      loadDailyStats();
+      // Synchronize slider values on the settings page
+      syncDailyGoalSetting(user.uid);
+    } else {
+      console.log("Użytkownik nie jest zalogowany.");
+      // Optional: redirect to login page
+      window.location.href = "/login.html";
+    }
+  });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Initialize the settings page logic
+      initializeSettings();
+
+      // loadDailyStats();
+    } else {
+      console.log("Użytkownik nie jest zalogowany.");
+      // window.location.href = '/login.html';
+    }
+  });
+
+  // Logic for switching pages
+ window.showPage = (pageId) => {
+    document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+    });
+
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.style.display = 'block';
+
+        if (pageId === 'settingsPage') {
+            syncSettingsUI();
+        }
+    }
+};
+});
+
+window.saveSettings = saveSettings;
+window.updateRangeValue = updateRangeValue;
 window.showPage = showPage;
 window.setDailyGoal = setDailyGoal;
 window.setCustomDailyGoal = setCustomDailyGoal;

@@ -477,13 +477,14 @@
 
                             <div class="form-group">
                                 <label for="currentPassword">Aktualne hasło</label>
-                                <input type="password" class="profile-reset-password" id="currentPassword" placeholder="Wprowadź aktualne hasło">
+                                <input type="password" class="profile-reset-password" id="currentPassword"
+                                    placeholder="Wprowadź aktualne hasło">
                             </div>
 
                             <div class="form-group">
                                 <label for="newPassword">Nowe hasło</label>
-                                <input type="password" class="profile-reset-password" id="newPassword" placeholder="Wprowadź nowe hasło"
-                                    oninput="checkPasswordStrength()">
+                                <input type="password" class="profile-reset-password" id="newPassword"
+                                    placeholder="Wprowadź nowe hasło" oninput="checkPasswordStrength()">
                                 <div class="password-strength-indicator">
                                     <div class="password-strength-bar" id="passwordStrengthBar"></div>
                                 </div>
@@ -491,7 +492,8 @@
 
                             <div class="form-group">
                                 <label for="confirmNewPassword">Potwierdź nowe hasło</label>
-                                <input type="password" class="profile-reset-password" id="confirmNewPassword" placeholder="Potwierdź nowe hasło">
+                                <input type="password" class="profile-reset-password" id="confirmNewPassword"
+                                    placeholder="Potwierdź nowe hasło">
                             </div>
                         </div>
 
@@ -505,9 +507,266 @@
 
         <div class="settings-container">
             <div id="settingsPage" class="page" style="display: none">
-                <h1>Ustawienia</h1>
+                <div class="settings-header">
+                    <h1 class="settings-title">
+                        <span>⚙️</span>
+                        Ustawienia
+                    </h1>
+                    <p class="settings-description">
+                        Personalizuj swoje doświadczenie nauki. Dostosuj aplikację do swoich potrzeb i preferencji, aby
+                        maksymalnie wykorzystać czas poświęcony na naukę języka.
+                    </p>
+                </div>
+
+                <div class="settings-grid">
+                    <!-- Learning Preferences -->
+                    <div class="settings-card">
+                        <div class="card-header">
+                            <span class="card-icon">🎯</span>
+                            <h2 class="card-title">Preferencje Nauki</h2>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Automatyczne przejście do następnego słowa</div>
+                                <div class="setting-description">Po poprawnej odpowiedzi automatycznie przejdź do
+                                    następnego słowa</div>
+                            </div>
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Pokazuj podpowiedzi</div>
+                                <div class="setting-description">Wyświetlaj pierwszą literę słowa jako podpowiedź</div>
+                            </div>
+                            <div class="toggle-switch" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Dzienny cel słówek</div>
+                                <div class="setting-description">Ile słówek chcesz uczyć się każdego dnia?</div>
+                            </div>
+                            <input type="range" id="settingsDailyGoalSlider" class="range-slider" min="5" max="100" value="20"
+                                oninput="updateRangeValue(this, 'daily-goal-value')">
+                            <span class="range-value" id="daily-goal-value">20</span>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Tryb trudności</div>
+                                <div class="setting-description">Wybierz poziom trudności quizów</div>
+                            </div>
+                            <select class="dropdown-select">
+                                <option value="easy">Łatwy</option>
+                                <option value="medium" selected>Średni</option>
+                                <option value="hard">Trudny</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="settings-card">
+                        <div class="card-header">
+                            <span class="card-icon">🔔</span>
+                            <h2 class="card-title">Powiadomienia</h2>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Codzienne przypomnienia</div>
+                                <div class="setting-description">Otrzymuj powiadomienia o nauce każdego dnia</div>
+                            </div>
+                            <div id="reminderToggle" class="toggle-switch" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Czas przypomnienia</div>
+                                <div class="setting-description">O której godzinie chcesz otrzymywać przypomnienia?
+                                </div>
+                            </div>
+                             <input type="time" id="reminderTime" class="dropdown-select">
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Powiadomienia o osiągnięciach</div>
+                                <div class="setting-description">Otrzymuj powiadomienia o zdobytych nagrodach</div>
+                            </div>
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Powiadomienia emailowe</div>
+                                <div class="setting-description">Otrzymuj tygodniowe podsumowania na email</div>
+                            </div>
+                            <div class="toggle-switch" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance -->
+                    <div class="settings-card">
+                        <div class="card-header">
+                            <span class="card-icon">🎨</span>
+                            <h2 class="card-title">Wygląd</h2>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Tryb ciemny</div>
+                                <div class="setting-description">Przełącz na ciemny motyw aplikacji</div>
+                            </div>
+                            <div class="toggle-switch" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Rozmiar czcionki</div>
+                                <div class="setting-description">Dostosuj rozmiar tekstu do swoich preferencji</div>
+                            </div>
+                            <select class="dropdown-select">
+                                <option value="small">Mała</option>
+                                <option value="medium" selected>Średnia</option>
+                                <option value="large">Duża</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Animacje</div>
+                                <div class="setting-description">Włącz lub wyłącz animacje w interfejsie</div>
+                            </div>
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy & Security -->
+                    <div class="settings-card">
+                        <div class="card-header">
+                            <span class="card-icon">🔐</span>
+                            <h2 class="card-title">Prywatność i Bezpieczeństwo</h2>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Analityka użytkowania</div>
+                                <div class="setting-description">Pomóż nam ulepszyć aplikację dzieląc się danymi
+                                    użytkowania</div>
+                            </div>
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Automatyczne logowanie</div>
+                                <div class="setting-description">Zapamiętaj mnie na tym urządzeniu</div>
+                            </div>
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Dwuskładnikowe uwierzytelnianie</div>
+                                <div class="setting-description">Dodatkowe zabezpieczenie konta</div>
+                            </div>
+                            <div class="toggle-switch" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Management -->
+                    <div class="settings-card">
+                        <div class="card-header">
+                            <span class="card-icon">💾</span>
+                            <h2 class="card-title">Zarządzanie Danymi</h2>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Automatyczne kopie zapasowe</div>
+                                <div class="setting-description">Regularnie zapisuj postępy w chmurze</div>
+                            </div>
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Eksportuj dane</div>
+                                <div class="setting-description">Pobierz kopię swoich postępów i statystyk</div>
+                            </div>
+                            <button class="dropdown-select" onclick="exportData()">Eksportuj</button>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Importuj dane</div>
+                                <div class="setting-description">Przywróć dane z poprzedniej kopii zapasowej</div>
+                            </div>
+                            <button class="dropdown-select" onclick="importData()">Importuj</button>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="settings-card danger-zone">
+                        <div class="card-header">
+                            <span class="card-icon">⚠️</span>
+                            <h2 class="card-title">Strefa Zagrożenia</h2>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Resetuj wszystkie postępy</div>
+                                <div class="setting-description">Usuń wszystkie statystyki i rozpocznij od nowa</div>
+                            </div>
+                            <button class="danger-button" onclick="resetProgress()">Resetuj</button>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Usuń konto</div>
+                                <div class="setting-description">Trwale usuń konto i wszystkie powiązane dane</div>
+                            </div>
+                            <button class="danger-button" onclick="deleteAccount()">Usuń konto</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="save-button" onclick="saveSettings()">
+                    <span>💾</span>
+                    Zapisz wszystkie ustawienia
+                </button>
+            </div>
+
+            <div class="notification" id="notification">
+                <span>✅</span>
+                Ustawienia zostały zapisane!
             </div>
         </div>
+    </div>
 
     </div>
 </body>

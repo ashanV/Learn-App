@@ -7,6 +7,7 @@ import Word from "./models/Word.js";
 import quizRoutes from "./routes/quizroutes.js";
 import writingRoutes from "./routes/writingRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import settingsRoutes from "./routes/settingsRoutes.js";
 
 const app = express();
 const PORT = 5000;
@@ -39,6 +40,7 @@ mongoose
 app.use("/api/quiz", quizRoutes);
 app.use("/api/writing", writingRoutes);
 app.use("/api/user", profileRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // User registration
 app.post("/api/register", async (req, res) => {
