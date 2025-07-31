@@ -48,6 +48,14 @@ const userSchema = new mongoose.Schema({
       max: 100,
     },
     dailyGoalSetAt: Date,
+    reminderEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    reminderTime: {
+      type: String,
+      default: "18:00",
+    },
   },
   dailyStats: {
     completedWords: {
