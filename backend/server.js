@@ -783,6 +783,10 @@ app.use((req, res) => {
   });
 });
 
+app.get('/', (req, res) => {
+  res.status(200).send('Serwer działa! Witaj na stronie głównej. 🎉');
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Serwer działa na porcie ${PORT}`);
