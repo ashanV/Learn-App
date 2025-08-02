@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import User from "./models/User.js";
 import Word from "./models/Word.js";
-import quizRoutes from "./routes/quizroutes.js";
+import quizRoutes from "./routes/quizRoutes.js";
 import writingRoutes from "./routes/writingRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
