@@ -1,5 +1,5 @@
 import express from "express";
-import WritingWord from "../models/WritingWord.js";
+import WritingWord from "../models/writingWord.js";
 import User from "../models/User.js"; 
 
 const router = express.Router();
